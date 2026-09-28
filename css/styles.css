@@ -389,6 +389,27 @@ body {
   border-bottom: 1px solid #f1f5f9;
 }
 
+.btn-delete-post {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-light);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-delete-post:hover {
+  color: var(--danger);
+  background-color: #fef2f2;
+  border-color: #fecaca;
+}
+
 .post-author-box {
   display: flex;
   align-items: center;

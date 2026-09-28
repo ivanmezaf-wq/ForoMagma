@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return id;
   }
 
-  // Funciones seguras para evitar cualquier error de tipo
   function safeTrim(value, fallback = '') {
     if (value === null || value === undefined) return fallback;
     if (typeof value === 'string') return value.trim();
@@ -42,14 +41,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
-  // Elementos del DOM
   const dom = {
     postsContainer: document.getElementById('postsContainer'),
     linksContainer: document.getElementById('linksContainer'),
     linksCountBadge: document.getElementById('linksCountBadge'),
     searchInput: document.getElementById('searchInput'),
     
-    // Modal 90%
     modalNewPost: document.getElementById('modalNewPost'),
     btnOpenNewPost: document.getElementById('btnOpenNewPost'),
     btnQuickOpenPost: document.getElementById('btnQuickOpenPost'),
@@ -59,7 +56,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     postTitleInput: document.getElementById('postTitleInput'),
     postContentInput: document.getElementById('postContentInput'),
     
-    // Subida directa de archivos
     btnAttachDirect: document.getElementById('btnAttachDirect'),
     hiddenFileInput: document.getElementById('hiddenFileInput'),
     attachedBadgesContainer: document.getElementById('attachedBadgesContainer'),
@@ -68,7 +64,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     toastContainer: document.getElementById('toastContainer')
   };
 
-  // Notificación Toast
   function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = 'toast';
@@ -87,7 +82,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 3500);
   }
 
-  // Formato exacto de fecha y hora
   function formatExactDateTime(isoString) {
     if (!isoString) return '';
     const date = new Date(isoString);
@@ -106,7 +100,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `${day} ${month} ${year} • ${hoursStr}:${minutes} ${ampm}`;
   }
 
-  // Convertir enlaces en texto a tags <a>
   function linkifyText(text) {
     if (!text) return '';
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -116,7 +109,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Formato de tamaño de archivo
   function formatFileSize(bytes) {
     if (!bytes || bytes === 0) return '0 KB';
     const k = 1024;
@@ -134,14 +126,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     return { label: ext.toUpperCase() || 'DOC', cssClass: 'type-other' };
   }
 
-  // Cargar datos
   async function loadData() {
     state.posts = await StorageManager.getPosts();
     renderPosts();
     renderLinksSidebar();
   }
 
-  // Renderizar enlaces de la columna izquierda
   function renderLinksSidebar() {
     if (!dom.linksContainer) return;
     const links = StorageManager.extractAllLinks(state.posts);
@@ -183,7 +173,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }).join('');
   }
 
-  // Renderizar publicaciones
   function renderPosts() {
     if (!dom.postsContainer) return;
 
@@ -217,7 +206,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     attachPostInteractions();
   }
 
-  // Renderizar tarjeta individual
   function renderPostCard(post) {
     const vistos = post.vistos || [];
     const isVisto = vistos.includes(state.viewerId);
@@ -225,7 +213,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const commentCount = (post.comments || []).length;
     const authorName = getAuthorName(post.author);
 
-    // Adjuntos
     let attachmentsHtml = '';
     if (post.attachments && post.attachments.length > 0) {
       attachmentsHtml = `
@@ -258,7 +245,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
     }
 
-    // Comentarios
     const commentsListHtml = (post.comments || []).map(c => `
       <div class="comment-card">
         <div class="comment-author-circle">${getInitials(c.author)}</div>
@@ -288,6 +274,17 @@ document.addEventListener('DOMContentLoaded', async () => {
               </div>
             </div>
           </div>
+
+          <!-- Botón Eliminar Publicación -->
+          <button class="btn-delete-post" data-post-id="${post.id}" data-post-title="${escapeHtml(post.title)}" title="Eliminar esta publicación">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+            <span>Eliminar</span>
+          </button>
         </div>
 
         <h2 class="post-title">${escapeHtml(post.title)}</h2>
@@ -297,7 +294,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         ${attachmentsHtml}
 
         <div class="post-actions-bar">
-          <!-- Botón Visto (Ojo 👁️) -->
           <button class="btn-visto ${isVisto ? 'active' : ''}" data-post-id="${post.id}" title="Marcar como visto">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -344,8 +340,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
   }
 
-  // Listeners de interacción
   function attachPostInteractions() {
+    // Eliminar publicación
+    document.querySelectorAll('.btn-delete-post').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const postId = btn.getAttribute('data-post-id');
+        const postTitle = btn.getAttribute('data-post-title') || 'esta publicación';
+
+        if (confirm(`¿Estás seguro de que deseas eliminar la publicación "${postTitle}"?`)) {
+          await StorageManager.deletePost(postId);
+          state.posts = await StorageManager.getPosts();
+          renderPosts();
+          renderLinksSidebar();
+          showToast('Publicación eliminada correctamente');
+        }
+      });
+    });
+
     // Botón Visto
     document.querySelectorAll('.btn-visto').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -458,7 +470,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.target === dom.modalNewPost) closeNewPostModal();
   });
 
-  // Botón directo para examinar el PC
   dom.btnAttachDirect.addEventListener('click', () => {
     dom.hiddenFileInput.click();
   });
@@ -498,7 +509,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderAttachedBadges();
   };
 
-  // Enviar publicación
   dom.formNewPost.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -548,12 +558,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Búsqueda en vivo
   dom.searchInput.addEventListener('input', (e) => {
     state.searchQuery = e.target.value;
     renderPosts();
   });
 
-  // Inicializar
   await loadData();
 });

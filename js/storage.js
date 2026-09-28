@@ -63,12 +63,10 @@ const StorageManager = {
 
       request.onsuccess = () => {
         let posts = request.result || [];
-        // Normalizar cada post para que author sea siempre un string seguro
         posts = posts.map(p => ({
           ...p,
           author: this.normalizeAuthor(p.author)
         }));
-        // Ordenar por fecha descendente
         posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         resolve(posts);
       };
@@ -101,6 +99,25 @@ const StorageManager = {
       const request = store.put(cleanPost);
 
       request.onsuccess = () => resolve(cleanPost);
+      request.onerror = (e) => reject(e.target.error);
+    });
+  },
+
+  // Eliminar publicación
+  async deletePost(postId) {
+    if (!this.db) {
+      let posts = await this.getPosts();
+      posts = posts.filter(p => p.id !== postId);
+      localStorage.setItem('foromagma_posts_v3', JSON.stringify(posts));
+      return true;
+    }
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([STORE_POSTS], 'readwrite');
+      const store = transaction.objectStore(STORE_POSTS);
+      const request = store.delete(postId);
+
+      request.onsuccess = () => resolve(true);
       request.onerror = (e) => reject(e.target.error);
     });
   },
@@ -164,7 +181,6 @@ const StorageManager = {
     });
   },
 
-  // Recordar último autor
   getLastAuthor() {
     return localStorage.getItem('foromagma_last_author') || '';
   },
@@ -175,7 +191,6 @@ const StorageManager = {
     }
   },
 
-  // Extraer todos los links
   extractAllLinks(posts) {
     const linksList = [];
     const urlRegex = /(https?:\/\/[^\s]+)/g;
