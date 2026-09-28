@@ -1,70 +1,48 @@
-// Aplicación Principal de ForoMagma
+// Lógica Principal de ForoMagma
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Inicializar almacenamiento
   await StorageManager.init();
 
-  // Estado de la aplicación
   const state = {
     posts: [],
-    filteredPosts: [],
-    activeCategory: 'Todos',
     searchQuery: '',
-    sortBy: 'newest',
-    currentUser: StorageManager.getCurrentUser() || {
-      fullName: '',
-      avatarUrl: ''
-    },
-    // Archivos pendientes en el modal de nueva publicación
     pendingFiles: [],
-    // Foto temporal para el modal de publicación
-    tempAvatarUrl: null
+    viewerId: getOrCreateViewerId()
   };
+
+  // Genera o recupera un identificador anónimo único para el navegador
+  function getOrCreateViewerId() {
+    let id = localStorage.getItem('foromagma_viewer_id');
+    if (!id) {
+      id = 'viewer_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('foromagma_viewer_id', id);
+    }
+    return id;
+  }
 
   // Elementos del DOM
   const dom = {
     postsContainer: document.getElementById('postsContainer'),
-    postsCountBadge: document.getElementById('postsCountBadge'),
-    thesisPostsCount: document.getElementById('thesisPostsCount'),
-    thesisCommentsCount: document.getElementById('thesisCommentsCount'),
-    thesisFilesCount: document.getElementById('thesisFilesCount'),
+    linksContainer: document.getElementById('linksContainer'),
+    linksCountBadge: document.getElementById('linksCountBadge'),
     searchInput: document.getElementById('searchInput'),
-    sortSelect: document.getElementById('sortSelect'),
-    categoryItems: document.querySelectorAll('.category-filter-btn'),
-    mobileCategoryChips: document.getElementById('mobileCategoryChips'),
-    navUserAvatar: document.getElementById('navUserAvatar'),
-    navUserName: document.getElementById('navUserName'),
     
-    // Modal Nueva Publicación
+    // Modal Grande de Nueva Publicación (70-90% de pantalla)
     modalNewPost: document.getElementById('modalNewPost'),
     btnOpenNewPost: document.getElementById('btnOpenNewPost'),
     btnQuickOpenPost: document.getElementById('btnQuickOpenPost'),
     btnCloseNewPost: document.getElementById('btnCloseNewPost'),
     formNewPost: document.getElementById('formNewPost'),
-    authorNameInput: document.getElementById('authorNameInput'),
+    postAuthorInput: document.getElementById('postAuthorInput'),
     postTitleInput: document.getElementById('postTitleInput'),
-    postCategorySelect: document.getElementById('postCategorySelect'),
     postContentInput: document.getElementById('postContentInput'),
-    modalAvatarPreview: document.getElementById('modalAvatarPreview'),
-    btnRegenAvatar: document.getElementById('btnRegenAvatar'),
-    avatarFileInput: document.getElementById('avatarFileInput'),
-    btnUploadAvatar: document.getElementById('btnUploadAvatar'),
     fileDropzone: document.getElementById('fileDropzone'),
     postAttachmentInput: document.getElementById('postAttachmentInput'),
     pendingFilesList: document.getElementById('pendingFilesList'),
     btnSubmitPost: document.getElementById('btnSubmitPost'),
 
-    // Toast
     toastContainer: document.getElementById('toastContainer')
   };
-
-  // Cargar datos iniciales
-  async function loadData() {
-    state.posts = await StorageManager.getPosts();
-    updateThesisStats();
-    applyFilters();
-    updateUserNavBadge();
-  }
 
   // Notificación Toast
   function showToast(message, type = 'info') {
@@ -85,105 +63,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 3500);
   }
 
-  // Actualizar estadísticas del sidebar
-  function updateThesisStats() {
-    let totalComments = 0;
-    let totalFiles = 0;
+  // Formato exacto de fecha y hora
+  function formatExactDateTime(isoString) {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
 
-    state.posts.forEach(p => {
-      if (p.comments) totalComments += p.comments.length;
-      if (p.attachments) totalFiles += p.attachments.length;
+    let hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // Formato 12 horas
+    const hoursStr = hours.toString().padStart(2, '0');
+
+    return `${day} ${month} ${year} • ${hoursStr}:${minutes} ${ampm}`;
+  }
+
+  // Iniciales para avatar simple
+  function getInitials(name) {
+    if (!name) return 'FM';
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  // Convertir enlaces en texto a tags <a> clicables
+  function linkifyText(text) {
+    if (!text) return '';
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, (url) => {
+      const cleanUrl = url.replace(/[.,;:)\]]+$/, '');
+      return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>`;
     });
-
-    if (dom.postsCountBadge) dom.postsCountBadge.textContent = state.posts.length;
-    if (dom.thesisPostsCount) dom.thesisPostsCount.textContent = state.posts.length;
-    if (dom.thesisCommentsCount) dom.thesisCommentsCount.textContent = totalComments;
-    if (dom.thesisFilesCount) dom.thesisFilesCount.textContent = totalFiles;
   }
 
-  // Actualizar el perfil en la barra superior
-  function updateUserNavBadge() {
-    if (state.currentUser.fullName) {
-      dom.navUserName.textContent = state.currentUser.fullName;
-      dom.navUserAvatar.src = state.currentUser.avatarUrl || AvatarManager.generateSvgAvatar(state.currentUser.fullName);
-    } else {
-      dom.navUserName.textContent = 'Mi Perfil';
-      dom.navUserAvatar.src = AvatarManager.generateSvgAvatar('Electrónica');
-    }
-  }
-
-  // Filtrado y ordenamiento de publicaciones
-  function applyFilters() {
-    let filtered = [...state.posts];
-
-    // Filtro por categoría
-    if (state.activeCategory && state.activeCategory !== 'Todos') {
-      filtered = filtered.filter(p => p.category === state.activeCategory);
-    }
-
-    // Filtro por búsqueda
-    if (state.searchQuery.trim()) {
-      const q = state.searchQuery.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.title.toLowerCase().includes(q) ||
-        p.content.toLowerCase().includes(q) ||
-        (p.author && p.author.fullName.toLowerCase().includes(q))
-      );
-    }
-
-    // Ordenamiento
-    if (state.sortBy === 'newest') {
-      filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    } else if (state.sortBy === 'most_comments') {
-      filtered.sort((a, b) => (b.comments ? b.comments.length : 0) - (a.comments ? a.comments.length : 0));
-    } else if (state.sortBy === 'most_likes') {
-      filtered.sort((a, b) => (b.likes ? b.likes.length : 0) - (a.likes ? a.likes.length : 0));
-    }
-
-    state.filteredPosts = filtered;
-    renderPosts();
-  }
-
-  // Renderizar la lista de publicaciones en la columna central
-  function renderPosts() {
-    if (!dom.postsContainer) return;
-
-    if (state.filteredPosts.length === 0) {
-      dom.postsContainer.innerHTML = `
-        <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
-          <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">⚡</div>
-          <h3 style="font-size: 1.2rem; color: var(--primary-dark); margin-bottom: 0.5rem;">No se encontraron publicaciones</h3>
-          <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 400px; margin: 0 auto 1.5rem;">
-            Sé el primero en compartir un avance, circuito, documento o duda en esta sección.
-          </p>
-          <button class="btn btn-primary" onclick="document.getElementById('btnOpenNewPost').click()">
-            + Crear Nueva Publicación
-          </button>
-        </div>
-      `;
-      return;
-    }
-
-    dom.postsContainer.innerHTML = state.filteredPosts.map(post => renderPostCard(post)).join('');
-    attachPostInteractions();
-  }
-
-  // Formato de fecha relativa o legible
-  function formatRelativeDate(isoDate) {
-    if (!isoDate) return 'Reciente';
-    const date = new Date(isoDate);
-    const now = new Date();
-    const diffSec = Math.floor((now - date) / 1000);
-
-    if (diffSec < 60) return 'Hace un momento';
-    if (diffSec < 3600) return `Hace ${Math.floor(diffSec / 60)} min`;
-    if (diffSec < 86400) return `Hace ${Math.floor(diffSec / 3600)} h`;
-    if (diffSec < 604800) return `Hace ${Math.floor(diffSec / 86400)} d`;
-
-    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
-  }
-
-  // Formato de tamaño de archivo (KB / MB)
+  // Formato de tamaño de archivo
   function formatFileSize(bytes) {
     if (!bytes || bytes === 0) return '0 KB';
     const k = 1024;
@@ -192,29 +109,106 @@ document.addEventListener('DOMContentLoaded', async () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   }
 
-  // Icono y clase según tipo de archivo
+  // Tipo de archivo
   function getFileMeta(extension) {
     const ext = (extension || '').toLowerCase();
-    if (ext === 'pdf') {
-      return { label: 'PDF', cssClass: 'type-pdf', icon: '📄' };
+    if (ext === 'pdf') return { label: 'PDF', cssClass: 'type-pdf' };
+    if (['doc', 'docx'].includes(ext)) return { label: 'WORD', cssClass: 'type-doc' };
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return { label: 'EXCEL', cssClass: 'type-xls' };
+    if (['ppt', 'pptx'].includes(ext)) return { label: 'PPT', cssClass: 'type-ppt' };
+    return { label: ext.toUpperCase() || 'DOC', cssClass: 'type-other' };
+  }
+
+  // Cargar publicaciones y enlaces
+  async function loadData() {
+    state.posts = await StorageManager.getPosts();
+    renderPosts();
+    renderLinksSidebar();
+  }
+
+  // Renderizar la columna izquierda con los enlaces compartidos
+  function renderLinksSidebar() {
+    if (!dom.linksContainer) return;
+    const links = StorageManager.extractAllLinks(state.posts);
+
+    if (dom.linksCountBadge) {
+      dom.linksCountBadge.textContent = links.length;
     }
-    if (['doc', 'docx'].includes(ext)) {
-      return { label: 'WORD', cssClass: 'type-doc', icon: '📝' };
+
+    if (links.length === 0) {
+      dom.linksContainer.innerHTML = `
+        <div class="empty-links-state">
+          Aún no se han compartido enlaces en las publicaciones.
+        </div>
+      `;
+      return;
     }
-    if (['xls', 'xlsx', 'csv'].includes(ext)) {
-      return { label: 'EXCEL', cssClass: 'type-xls', icon: '📊' };
+
+    dom.linksContainer.innerHTML = links.map(item => {
+      let hostname = '';
+      try {
+        hostname = new URL(item.url).hostname;
+      } catch (e) {
+        hostname = 'Enlace externo';
+      }
+
+      return `
+        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="link-card-item" title="${item.url}">
+          <div class="link-domain">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            ${hostname}
+          </div>
+          <div class="link-full-url">${item.url}</div>
+          <div class="link-source-post">De: ${escapeHtml(item.postTitle || 'Publicación')} (${escapeHtml(item.author || 'Anónimo')})</div>
+        </a>
+      `;
+    }).join('');
+  }
+
+  // Renderizar publicaciones en el feed central
+  function renderPosts() {
+    if (!dom.postsContainer) return;
+
+    let filtered = [...state.posts];
+    if (state.searchQuery.trim()) {
+      const q = state.searchQuery.toLowerCase();
+      filtered = filtered.filter(p =>
+        (p.title || '').toLowerCase().includes(q) ||
+        (p.content || '').toLowerCase().includes(q) ||
+        (p.author || '').toLowerCase().includes(q)
+      );
     }
-    if (['ppt', 'pptx'].includes(ext)) {
-      return { label: 'PPT', cssClass: 'type-ppt', icon: '📽️' };
+
+    if (filtered.length === 0) {
+      dom.postsContainer.innerHTML = `
+        <div class="card" style="text-align: center; padding: 3.5rem 1.5rem;">
+          <div style="font-size: 2.8rem; margin-bottom: 0.75rem;">⚡</div>
+          <h3 style="font-size: 1.25rem; color: var(--primary-dark); margin-bottom: 0.5rem;">ForoMagma está listo</h3>
+          <p style="color: var(--text-muted); font-size: 0.92rem; max-width: 440px; margin: 0 auto 1.5rem;">
+            No hay publicaciones aún. Haz clic en el botón de abajo para redactar el primer avance de la tesis o compartir documentos.
+          </p>
+          <button class="btn btn-primary" onclick="document.getElementById('btnOpenNewPost').click()">
+            + Crear Primera Publicación
+          </button>
+        </div>
+      `;
+      return;
     }
-    return { label: ext.toUpperCase() || 'DOC', cssClass: 'type-other', icon: '📎' };
+
+    dom.postsContainer.innerHTML = filtered.map(post => renderPostCard(post)).join('');
+    attachPostInteractions();
   }
 
   // Renderizar HTML de un Post
   function renderPostCard(post) {
-    const isLiked = state.currentUser.fullName && (post.likes || []).includes(state.currentUser.fullName);
-    const likeCount = (post.likes || []).length;
+    const vistos = post.vistos || [];
+    const isVisto = vistos.includes(state.viewerId);
+    const vistosCount = vistos.length;
     const commentCount = (post.comments || []).length;
+    const authorName = post.author || 'Autor';
 
     // Renderizar adjuntos
     let attachmentsHtml = '';
@@ -234,8 +228,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <span class="attachment-filename" title="${att.name}">${att.name}</span>
                     <span class="attachment-filesize">${formatFileSize(att.size)}</span>
                   </div>
-                  <div class="attachment-download-btn" title="Descargar archivo">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <div title="Descargar archivo">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                       <polyline points="7 10 12 15 17 10"/>
                       <line x1="12" y1="15" x2="12" y2="3"/>
@@ -252,13 +246,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Renderizar comentarios
     const commentsListHtml = (post.comments || []).map(c => `
       <div class="comment-card">
-        <img class="comment-avatar" src="${c.author.avatarUrl || AvatarManager.generateSvgAvatar(c.author.fullName)}" alt="${c.author.fullName}">
+        <div class="comment-author-circle">${getInitials(c.author)}</div>
         <div class="comment-bubble">
           <div class="comment-author-row">
-            <span class="comment-author-name">${c.author.fullName}</span>
-            <span class="comment-date">${formatRelativeDate(c.createdAt)}</span>
+            <span class="comment-author-name">${escapeHtml(c.author)}</span>
+            <span class="comment-date">${formatExactDateTime(c.createdAt)}</span>
           </div>
-          <div class="comment-body">${escapeHtml(c.content)}</div>
+          <div class="comment-body">${linkifyText(escapeHtml(c.content))}</div>
         </div>
       </div>
     `).join('');
@@ -266,31 +260,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `
       <article class="post-card" id="card-${post.id}">
         <div class="post-header">
-          <div class="post-author-wrap">
-            <img class="post-avatar" src="${post.author.avatarUrl || AvatarManager.generateSvgAvatar(post.author.fullName)}" alt="${post.author.fullName}">
-            <div class="post-meta">
-              <span class="post-author-name">${escapeHtml(post.author.fullName)}</span>
-              <div class="post-date-row">
-                <span>${formatRelativeDate(post.createdAt)}</span>
-                <span>•</span>
-                <span class="post-category-tag">⚡ ${post.category || 'General'}</span>
+          <div class="post-author-box">
+            <div class="author-circle">${getInitials(authorName)}</div>
+            <div>
+              <div class="post-author-name">${escapeHtml(authorName)}</div>
+              <div class="post-datetime">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                ${formatExactDateTime(post.createdAt)}
               </div>
             </div>
           </div>
         </div>
 
         <h2 class="post-title">${escapeHtml(post.title)}</h2>
-        
-        <div class="post-content">${escapeHtml(post.content)}</div>
+
+        <div class="post-content">${linkifyText(escapeHtml(post.content))}</div>
 
         ${attachmentsHtml}
 
         <div class="post-actions-bar">
-          <button class="action-btn btn-like ${isLiked ? 'liked' : ''}" data-post-id="${post.id}">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-              <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
+          <!-- Botón de Reacción Único: 👁️ Visto -->
+          <button class="btn-visto ${isVisto ? 'active' : ''}" data-post-id="${post.id}" title="Marcar como visto">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
             </svg>
-            <span>${likeCount > 0 ? likeCount : ''} Útil</span>
+            <span>Visto ${vistosCount > 0 ? `(${vistosCount})` : ''}</span>
           </button>
 
           <button class="action-btn btn-toggle-comments" data-post-id="${post.id}">
@@ -300,7 +298,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span>${commentCount} Comentarios</span>
           </button>
 
-          <button class="action-btn btn-share" data-post-id="${post.id}" title="Copiar enlace de publicación">
+          <button class="action-btn btn-share" data-post-id="${post.id}" title="Copiar enlace">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
               <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
@@ -310,23 +308,21 @@ document.addEventListener('DOMContentLoaded', async () => {
           </button>
         </div>
 
-        <!-- Sección de Comentarios desplegada -->
+        <!-- Sección de Comentarios -->
         <div class="comments-section" id="comments-${post.id}">
-          <div class="comments-header">Comentarios y Discusión (${commentCount})</div>
+          <div class="comments-header">Comentarios (${commentCount})</div>
           
           <div class="comments-list">
-            ${commentsListHtml || '<div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No hay comentarios aún. ¡Escribe el primero!</div>'}
+            ${commentsListHtml || '<div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No hay comentarios todavía. Deja tu observación.</div>'}
           </div>
 
-          <!-- Formulario para comentar -->
           <form class="add-comment-box form-add-comment" data-post-id="${post.id}">
-            <div class="comment-user-inputs">
-              <input type="text" class="comment-user-name-input input-comment-author" placeholder="Tu Nombre y Apellido (ej. Juan Pérez)" value="${state.currentUser.fullName || ''}" required>
+            <div class="comment-inputs-row">
+              <input type="text" class="comment-author-input input-comment-author" placeholder="Tu Nombre o Autor..." value="${StorageManager.getLastAuthor()}" required>
             </div>
-            <textarea class="comment-textarea input-comment-text" placeholder="Escribe tu observación o comentario técnico..." required></textarea>
-            <div class="comment-submit-row">
-              <span style="font-size: 0.74rem; color: var(--text-light);">Cualquiera que entre al link puede comentar</span>
-              <button type="submit" class="btn btn-primary btn-sm">Publicar Comentario</button>
+            <textarea class="comment-textarea input-comment-text" placeholder="Escribe tu comentario o respuesta..." required></textarea>
+            <div style="display: flex; justify-content: flex-end;">
+              <button type="submit" class="btn btn-primary" style="padding: 0.45rem 1rem; font-size: 0.82rem;">Comentar</button>
             </div>
           </form>
         </div>
@@ -334,43 +330,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     `;
   }
 
-  // Asignar listeners a los botones de posts y comentarios
+  // Listeners de interacción
   function attachPostInteractions() {
-    // Likes
-    document.querySelectorAll('.btn-like').forEach(btn => {
+    // Botón Visto (Ojo 👁️)
+    document.querySelectorAll('.btn-visto').forEach(btn => {
       btn.addEventListener('click', async () => {
         const postId = btn.getAttribute('data-post-id');
-        let userName = state.currentUser.fullName;
-        if (!userName) {
-          userName = prompt('Ingresa tu Nombre y Apellido para registrar tu reacción:');
-          if (!userName || !userName.trim()) return;
-          userName = userName.trim();
-          state.currentUser.fullName = userName;
-          state.currentUser.avatarUrl = AvatarManager.generateSvgAvatar(userName);
-          StorageManager.saveCurrentUser(state.currentUser);
-          updateUserNavBadge();
-        }
-
-        await StorageManager.toggleLike(postId, userName);
+        await StorageManager.toggleVisto(postId, state.viewerId);
         state.posts = await StorageManager.getPosts();
-        applyFilters();
+        renderPosts();
       });
     });
 
-    // Compartir link
+    // Compartir enlace
     document.querySelectorAll('.btn-share').forEach(btn => {
       btn.addEventListener('click', () => {
         const postId = btn.getAttribute('data-post-id');
         const url = window.location.origin + window.location.pathname + '#card-' + postId;
         navigator.clipboard.writeText(url).then(() => {
-          showToast('¡Enlace de la publicación copiado al portapapeles!');
+          showToast('Enlace directo copiado al portapapeles');
         }).catch(() => {
-          prompt('Copia este enlace directo a la publicación:', url);
+          prompt('Copia este enlace directo:', url);
         });
       });
     });
 
-    // Descarga de archivos adjuntos
+    // Descarga de archivos
     document.querySelectorAll('.attachment-chip').forEach(chip => {
       chip.addEventListener('click', (e) => {
         e.preventDefault();
@@ -384,7 +369,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!att) return;
 
         if (att.data && att.data.startsWith('data:')) {
-          // Descargar directamente dataURL
           const link = document.createElement('a');
           link.href = att.data;
           link.download = fileName;
@@ -392,21 +376,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           link.click();
           link.remove();
           showToast(`Descargando ${fileName}...`);
-        } else {
-          // Archivo demostrativo
-          showToast(`Generando descarga de ${fileName}...`);
-          const blob = new Blob([`Contenido de demostración de ForoMagma para: ${fileName}\n\nDocumento adjunto para la tesis de Electrónica.`], { type: 'text/plain;charset=utf-8' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = fileName;
-          link.click();
-          URL.revokeObjectURL(url);
         }
       });
     });
 
-    // Enviar comentario
+    // Comentar
     document.querySelectorAll('.form-add-comment').forEach(form => {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -419,29 +393,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!authorName || !commentText) return;
 
-        // Recordar usuario si no estaba guardado
-        if (!state.currentUser.fullName) {
-          state.currentUser.fullName = authorName;
-          state.currentUser.avatarUrl = AvatarManager.generateSvgAvatar(authorName);
-          StorageManager.saveCurrentUser(state.currentUser);
-          updateUserNavBadge();
-        }
+        StorageManager.setLastAuthor(authorName);
 
         const newComment = {
           id: 'comm_' + Date.now(),
-          author: {
-            fullName: authorName,
-            avatarUrl: (state.currentUser.fullName === authorName && state.currentUser.avatarUrl) ? state.currentUser.avatarUrl : AvatarManager.generateSvgAvatar(authorName)
-          },
+          author: authorName,
           content: commentText,
           createdAt: new Date().toISOString()
         };
 
         await StorageManager.addComment(postId, newComment);
         state.posts = await StorageManager.getPosts();
-        updateThesisStats();
-        applyFilters();
-        showToast('Comentario publicado correctamente');
+        renderPosts();
+        renderLinksSidebar();
+        showToast('Comentario añadido');
       });
     });
   }
@@ -455,21 +420,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ==========================================================
-  // MANEJO DEL MODAL DE NUEVA PUBLICACIÓN
+  // VENTANA DESPLEGABLE (MODAL) - 70% A 90% DE PANTALLA
   // ==========================================================
   function openNewPostModal() {
     state.pendingFiles = [];
-    state.tempAvatarUrl = null;
     dom.pendingFilesList.innerHTML = '';
-
-    if (state.currentUser.fullName) {
-      dom.authorNameInput.value = state.currentUser.fullName;
-      dom.modalAvatarPreview.src = state.currentUser.avatarUrl || AvatarManager.generateSvgAvatar(state.currentUser.fullName);
-    } else {
-      dom.authorNameInput.value = '';
-      dom.modalAvatarPreview.src = AvatarManager.generateSvgAvatar('Usuario');
-    }
-
+    dom.postAuthorInput.value = StorageManager.getLastAuthor();
     dom.modalNewPost.classList.add('active');
     dom.postTitleInput.focus();
   }
@@ -481,7 +437,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     dom.pendingFilesList.innerHTML = '';
   }
 
-  // Eventos de apertura/cierre de modal
   dom.btnOpenNewPost.addEventListener('click', openNewPostModal);
   if (dom.btnQuickOpenPost) dom.btnQuickOpenPost.addEventListener('click', openNewPostModal);
   dom.btnCloseNewPost.addEventListener('click', closeNewPostModal);
@@ -490,39 +445,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.target === dom.modalNewPost) closeNewPostModal();
   });
 
-  // Actualizar avatar dinámico cuando escribe su Nombre y Apellido
-  dom.authorNameInput.addEventListener('input', () => {
-    const val = dom.authorNameInput.value.trim();
-    if (!state.tempAvatarUrl) {
-      dom.modalAvatarPreview.src = AvatarManager.generateSvgAvatar(val || 'Usuario', 'tech');
-    }
-  });
-
-  // Regenerar avatar técnico
-  dom.btnRegenAvatar.addEventListener('click', () => {
-    state.tempAvatarUrl = null;
-    const val = dom.authorNameInput.value.trim() || 'ForoMagma';
-    const randomSuffix = ' ' + Math.floor(Math.random() * 99);
-    dom.modalAvatarPreview.src = AvatarManager.generateSvgAvatar(val + randomSuffix, 'tech');
-  });
-
-  // Subir foto propia
-  dom.btnUploadAvatar.addEventListener('click', () => dom.avatarFileInput.click());
-  dom.avatarFileInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      try {
-        const base64 = await AvatarManager.readImageFile(file);
-        state.tempAvatarUrl = base64;
-        dom.modalAvatarPreview.src = base64;
-        showToast('Foto cargada exitosamente');
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    }
-  });
-
-  // Subida de archivos (PDF, Word, Office)
+  // Selector de archivos
   dom.fileDropzone.addEventListener('click', () => dom.postAttachmentInput.click());
   dom.postAttachmentInput.addEventListener('change', async (e) => {
     const files = Array.from(e.target.files);
@@ -531,7 +454,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const fileObj = await StorageManager.readFileAttachment(file);
         state.pendingFiles.push(fileObj);
         renderPendingFiles();
-        showToast(`Documento adjuntado: ${file.name}`);
+        showToast(`Documento adjunto: ${file.name}`);
       } catch (err) {
         showToast(err.message, 'error');
       }
@@ -539,13 +462,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     dom.postAttachmentInput.value = '';
   });
 
-  // Renderizar archivos pendientes en el modal
   function renderPendingFiles() {
     dom.pendingFilesList.innerHTML = state.pendingFiles.map((f, idx) => {
       const meta = getFileMeta(f.extension);
       return `
         <div class="pending-file-item">
-          <span>${meta.icon} <strong>${f.name}</strong> (${formatFileSize(f.size)})</span>
+          <span><strong>${f.name}</strong> (${formatFileSize(f.size)})</span>
           <button type="button" class="pending-file-remove" onclick="removePendingFile(${idx})">✕</button>
         </div>
       `;
@@ -557,17 +479,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderPendingFiles();
   };
 
-  // Enviar y publicar el post
+  // Enviar publicación
   dom.formNewPost.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const fullName = dom.authorNameInput.value.trim();
+    const author = dom.postAuthorInput.value.trim();
     const title = dom.postTitleInput.value.trim();
-    const category = dom.postCategorySelect.value;
     const content = dom.postContentInput.value.trim();
 
-    if (!fullName) {
-      showToast('Por favor escribe tu Nombre y Apellido', 'error');
+    if (!author) {
+      showToast('Por favor indica tu Nombre o Autor', 'error');
       return;
     }
     if (!title || !content) {
@@ -575,29 +496,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const finalAvatar = state.tempAvatarUrl || dom.modalAvatarPreview.src;
-
-    // Guardar usuario para futuras publicaciones
-    state.currentUser = {
-      fullName: fullName,
-      avatarUrl: finalAvatar
-    };
-    StorageManager.saveCurrentUser(state.currentUser);
-    updateUserNavBadge();
+    StorageManager.setLastAuthor(author);
 
     const newPost = {
       id: 'post_' + Date.now(),
       title: title,
-      author: {
-        fullName: fullName,
-        avatarUrl: finalAvatar
-      },
-      category: category,
+      author: author,
       content: content,
       attachments: [...state.pendingFiles],
-      likes: [],
+      vistos: [state.viewerId], // El creador lo marca como visto por defecto
       comments: [],
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString() // Fecha y hora exacta registrada
     };
 
     dom.btnSubmitPost.disabled = true;
@@ -606,46 +515,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       await StorageManager.savePost(newPost);
       state.posts = await StorageManager.getPosts();
-      updateThesisStats();
-      applyFilters();
+      renderPosts();
+      renderLinksSidebar();
       closeNewPostModal();
-      showToast('¡Publicación creada con éxito!');
-
-      // Scroll a la nueva publicación
+      showToast('¡Publicación creada exitosamente!');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      showToast('Error al guardar la publicación: ' + err.message, 'error');
+      showToast('Error al publicar: ' + err.message, 'error');
     } finally {
       dom.btnSubmitPost.disabled = false;
-      dom.btnSubmitPost.textContent = 'Publicar en el Foro';
+      dom.btnSubmitPost.textContent = 'Publicar Avance';
     }
   });
 
-  // ==========================================================
-  // FILTROS Y EVENTOS
-  // ==========================================================
   // Búsqueda en vivo
   dom.searchInput.addEventListener('input', (e) => {
     state.searchQuery = e.target.value;
-    applyFilters();
+    renderPosts();
   });
 
-  // Ordenamiento
-  dom.sortSelect.addEventListener('change', (e) => {
-    state.sortBy = e.target.value;
-    applyFilters();
-  });
-
-  // Filtro por categorías (Sidebar Izquierdo y Chips Móviles)
-  dom.categoryItems.forEach(btn => {
-    btn.addEventListener('click', () => {
-      dom.categoryItems.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state.activeCategory = btn.getAttribute('data-category');
-      applyFilters();
-    });
-  });
-
-  // Inicializar carga de datos
+  // Carga inicial
   await loadData();
 });
