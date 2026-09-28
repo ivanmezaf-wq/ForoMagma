@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>ForoMagma ⚡ Foro de Avances e Investigación en Electrónica</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Estilos del Foro -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <style>
+    /* Estilos móviles adicionales para garantizar 100% responsive */
+    .mobile-categories-bar {
+      display: none;
+      background-color: #ffffff;
+      border-bottom: 1px solid var(--border);
+      padding: 0.6rem 1rem;
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      gap: 0.5rem;
+    }
+    .mobile-categories-bar::-webkit-scrollbar {
+      display: none;
+    }
+    .mobile-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.35rem 0.85rem;
+      border-radius: var(--radius-full);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background-color: var(--bg-input);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .mobile-chip.active {
+      background-color: var(--primary-light);
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+    @media (max-width: 768px) {
+      .mobile-categories-bar {
+        display: flex;
+      }
+      .brand-title {
+        font-size: 1.15rem;
+      }
+      .brand-subtitle {
+        display: none;
+      }
+      .btn-new-text {
+        display: none;
+      }
+      .user-name-mini {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================
+       BARRA DE NAVEGACIÓN SUPERIOR
+       ========================================================== -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand-wrapper" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <div class="brand-logo-icon">
+          <!-- Icono de Circuito / Chip -->
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="4" width="16" height="16" rx="2"/>
+            <rect x="9" y="9" width="6" height="6"/>
+            <line x1="9" y1="1" x2="9" y2="4"/>
+            <line x1="15" y1="1" x2="15" y2="4"/>
+            <line x1="9" y1="20" x2="9" y2="23"/>
+            <line x1="15" y1="20" x2="15" y2="23"/>
+            <line x1="20" y1="9" x2="23" y2="9"/>
+            <line x1="20" y1="14" x2="23" y2="14"/>
+            <line x1="1" y1="9" x2="4" y2="9"/>
+            <line x1="1" y1="14" x2="4" y2="14"/>
+          </svg>
+        </div>
+        <div class="brand-text-wrap">
+          <div class="brand-title">Foro<span>Magma</span></div>
+          <div class="brand-subtitle">Investigación & Tesis en Electrónica</div>
+        </div>
+      </div>
+
+      <!-- Buscador en Vivo -->
+      <div class="nav-search-bar">
+        <div class="search-input-wrap">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="searchInput" class="nav-search-input" placeholder="Buscar circuitos, microcontroladores, avances o autor...">
+        </div>
+      </div>
+
+      <!-- Acciones de Cabecera -->
+      <div class="nav-actions">
+        <button id="btnOpenNewPost" class="btn btn-primary" title="Crear Publicación">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span class="btn-new-text">Publicar</span>
+        </button>
+
+        <div class="user-badge-nav" id="btnUserNav" title="Identidad de usuario">
+          <img id="navUserAvatar" class="user-avatar-mini" src="" alt="Avatar">
+          <span id="navUserName" class="user-name-mini">Mi Perfil</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Barra de Filtros Deslizable para Móviles -->
+  <div class="mobile-categories-bar" id="mobileCategoryChips">
+    <button class="mobile-chip category-filter-btn active" data-category="Todos">⚡ Todos</button>
+    <button class="mobile-chip category-filter-btn" data-category="Sistemas Embebidos">Embebidos</button>
+    <button class="mobile-chip category-filter-btn" data-category="Circuitos y PCB">Circuitos & PCB</button>
+    <button class="mobile-chip category-filter-btn" data-category="Potencia y Control">Potencia</button>
+    <button class="mobile-chip category-filter-btn" data-category="Sensores e IoT">IoT & Sensores</button>
+    <button class="mobile-chip category-filter-btn" data-category="Avances de Tesis">Avances Tesis</button>
+  </div>
+
+  <!-- ==========================================================
+       CONTENEDOR PRINCIPAL: 3 COLUMNAS (CENTRO PROMINENTE)
+       ========================================================== -->
+  <main class="main-wrapper">
+
+    <!-- COLUMNA IZQUIERDA: CATEGORÍAS TÉCNICAS -->
+    <aside class="sidebar-left">
+      <div class="card">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          Categorías
+        </div>
+        <ul class="categories-list">
+          <li class="category-item category-filter-btn active" data-category="Todos">
+            <span>⚡ Todos los temas</span>
+            <span class="category-badge-count" id="postsCountBadge">0</span>
+          </li>
+          <li class="category-item category-filter-btn" data-category="Sistemas Embebidos">
+            <span>💻 Sistemas Embebidos</span>
+          </li>
+          <li class="category-item category-filter-btn" data-category="Circuitos y PCB">
+            <span>🔌 Circuitos y PCB</span>
+          </li>
+          <li class="category-item category-filter-btn" data-category="Potencia y Control">
+            <span>⚡ Potencia y Control</span>
+          </li>
+          <li class="category-item category-filter-btn" data-category="Sensores e IoT">
+            <span>📡 Sensores e IoT</span>
+          </li>
+          <li class="category-item category-filter-btn" data-category="Telecomunicaciones">
+            <span>📶 Telecomunicaciones</span>
+          </li>
+          <li class="category-item category-filter-btn" data-category="Avances de Tesis">
+            <span>🎓 Avances de Tesis</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="new-post-box">
+        <h3>¿Nuevo Avance?</h3>
+        <p>Sube tus esquemáticos, reportes Word o archivos PDF para discusión con el equipo.</p>
+        <button class="btn btn-white" id="btnQuickOpenPost">
+          Redactar Avance
+        </button>
+      </div>
+    </aside>
+
+    <!-- COLUMNA CENTRAL: FEED DE PUBLICACIONES (PARTE CENTRAL) -->
+    <section class="feed-center">
+      
+      <!-- Barra Superior de Ordenamiento -->
+      <div class="feed-header-bar">
+        <div class="feed-header-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+          </svg>
+          Publicaciones y Avances
+        </div>
+        <div>
+          <select id="sortSelect" class="feed-sort-select">
+            <option value="newest">Más recientes</option>
+            <option value="most_comments">Más comentadas</option>
+            <option value="most_likes">Más votadas (Útiles)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tarjeta Rápida de Composición (Click para abrir modal) -->
+      <div class="quick-compose-card" onclick="document.getElementById('btnOpenNewPost').click()">
+        <img class="quick-compose-avatar" id="quickAvatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%232563eb'/><text x='50' y='58' font-size='38' fill='white' text-anchor='middle' font-weight='bold'>FM</text></svg>" alt="Avatar">
+        <div class="quick-compose-fake-input">
+          ¿En qué estás investigando hoy? Publica un avance o adjunta un documento...
+        </div>
+        <div class="quick-actions-icons">
+          <button class="quick-action-btn" type="button">
+            <span>📎</span> Subir PDF/Word
+          </button>
+        </div>
+      </div>
+
+      <!-- Contenedor dinámico de publicaciones -->
+      <div id="postsContainer">
+        <!-- Renderizado dinámico desde js/app.js -->
+      </div>
+    </section>
+
+    <!-- COLUMNA DERECHA: PROYECTO DE TESIS Y ESTADÍSTICAS -->
+    <aside class="sidebar-right">
+      <div class="card">
+        <div class="thesis-badge-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+            <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+          </svg>
+          Bitácora de Tesis
+        </div>
+        <h3 class="thesis-project-title">Investigación en Electrónica y Sistemas Embebidos</h3>
+        <p class="thesis-desc">
+          Espacio abierto para documentar avances, contrastar mediciones de laboratorio, compartir reportes y resolver dudas colaborativas.
+        </p>
+        <div class="thesis-stats-grid">
+          <div class="stat-item">
+            <span class="stat-number" id="thesisPostsCount">0</span>
+            <span class="stat-label">Publicaciones</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="thesisCommentsCount">0</span>
+            <span class="stat-label">Comentarios</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" id="thesisFilesCount">0</span>
+            <span class="stat-label">Archivos Subidos</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-number" style="color: var(--success);">100%</span>
+            <span class="stat-label">Acceso Libre</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="font-size: 0.84rem; color: var(--text-muted);">
+        <div class="card-title" style="font-size: 0.88rem;">📌 Normas del Foro</div>
+        <ul style="padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.4rem;">
+          <li>Usa tu <strong>Nombre y Apellido</strong> al publicar o comentar.</li>
+          <li>Formatos recomendados: PDF, Word (<code>.docx</code>), Excel y hojas de datos.</li>
+          <li>Cualquier persona con el enlace puede participar y comentar libremente.</li>
+        </ul>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ==========================================================
+       MODAL: NUEVA PUBLICACIÓN
+       ========================================================== -->
+  <div class="modal-overlay" id="modalNewPost">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+          Nueva Publicación en ForoMagma
+        </h2>
+        <button class="modal-close-btn" id="btnCloseNewPost" type="button">&times;</button>
+      </div>
+
+      <form id="formNewPost">
+        <div class="modal-body">
+          
+          <!-- Requisito: Nombre y Apellido con Avatar Automático o Foto -->
+          <div class="form-group">
+            <label class="form-label">Tu Nombre y Apellido <span class="req">*</span></label>
+            <input type="text" id="authorNameInput" class="form-input" placeholder="Ej: Iván Meza" required>
+          </div>
+
+          <!-- Selector de Foto o Avatar Generado -->
+          <div class="form-group">
+            <label class="form-label">Tu Foto de Perfil o Avatar</label>
+            <div class="avatar-selector-box">
+              <img id="modalAvatarPreview" class="avatar-preview-img" src="" alt="Vista previa avatar">
+              <div class="avatar-options">
+                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">
+                  Se asigna un avatar generado automático con tu nombre o sube tu foto:
+                </span>
+                <div class="avatar-option-btn-row">
+                  <button type="button" class="btn btn-outline btn-sm" id="btnUploadAvatar">
+                    📷 Subir mi foto
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm" id="btnRegenAvatar">
+                    🎲 Cambiar avatar generado
+                  </button>
+                  <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Categoría de Electrónica -->
+          <div class="form-group">
+            <label class="form-label">Categoría de Electrónica</label>
+            <select id="postCategorySelect" class="form-select">
+              <option value="Sistemas Embebidos">Sistemas Embebidos (STM32, ESP32, FPGA, PIC)</option>
+              <option value="Circuitos y PCB">Circuitos, Diseño PCB y Esquemáticos</option>
+              <option value="Potencia y Control">Electrónica de Potencia, Fuentes y Control</option>
+              <option value="Sensores e IoT">Sensores, Instrumentación e IoT</option>
+              <option value="Telecomunicaciones">Telecomunicaciones y RF</option>
+              <option value="Avances de Tesis" selected>Avances de Tesis y Metodología</option>
+            </select>
+          </div>
+
+          <!-- Título de la Publicación -->
+          <div class="form-group">
+            <label class="form-label">Título del Avance / Pregunta <span class="req">*</span></label>
+            <input type="text" id="postTitleInput" class="form-input" placeholder="Ej: Comparativa de conversores ADC y desacople en PCB" required>
+          </div>
+
+          <!-- Contenido del Post -->
+          <div class="form-group">
+            <label class="form-label">Contenido de la Publicación <span class="req">*</span></label>
+            <textarea id="postContentInput" class="form-textarea" placeholder="Describe los hallazgos de tu investigación, dudas técnicas o novedades de la tesis..." required></textarea>
+          </div>
+
+          <!-- Subida de Archivos: PDF, Word, Office -->
+          <div class="form-group">
+            <label class="form-label">Adjuntar Documentos (PDF, Word, Excel, PPT, etc.)</label>
+            <div class="file-dropzone" id="fileDropzone">
+              <div class="dropzone-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <div class="dropzone-text">Haz clic aquí para seleccionar archivos</div>
+              <div class="dropzone-subtext">Soporta PDF, .doc, .docx, .xls, .xlsx, .ppt, .pptx, esquemáticos e imágenes</div>
+              <input type="file" id="postAttachmentInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.zip" style="display: none;">
+            </div>
+
+            <!-- Lista de archivos adjuntos pendientes de subida -->
+            <div class="pending-files-list" id="pendingFilesList"></div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="document.getElementById('btnCloseNewPost').click()">Cancelar</button>
+          <button type="submit" id="btnSubmitPost" class="btn btn-primary">Publicar en el Foro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Contenedor para Notificaciones Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="js/avatars.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
