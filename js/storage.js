@@ -1,7 +1,7 @@
 // Gestor de persistencia con IndexedDB y localStorage para ForoMagma
 
 const DB_NAME = 'ForoMagmaDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_POSTS = 'posts';
 
 const StorageManager = {
@@ -37,11 +37,23 @@ const StorageManager = {
     });
   },
 
-  // Obtener publicaciones ordenadas por fecha (sin datos de ejemplo falsos)
+  // Normaliza el autor para evitar errores si viene como string u objeto
+  normalizeAuthor(rawAuthor) {
+    if (!rawAuthor) return 'Autor';
+    if (typeof rawAuthor === 'string') return rawAuthor.trim() || 'Autor';
+    if (typeof rawAuthor === 'object') {
+      if (rawAuthor.fullName && typeof rawAuthor.fullName === 'string') return rawAuthor.fullName.trim();
+      if (rawAuthor.name && typeof rawAuthor.name === 'string') return rawAuthor.name.trim();
+    }
+    return String(rawAuthor).trim() || 'Autor';
+  },
+
+  // Obtener publicaciones ordenadas por fecha
   async getPosts() {
     if (!this.db) {
-      const raw = localStorage.getItem('foromagma_posts_v2');
-      return raw ? JSON.parse(raw) : [];
+      const raw = localStorage.getItem('foromagma_posts_v3');
+      const posts = raw ? JSON.parse(raw) : [];
+      return posts.map(p => ({ ...p, author: this.normalizeAuthor(p.author) }));
     }
 
     return new Promise((resolve) => {
@@ -51,6 +63,11 @@ const StorageManager = {
 
       request.onsuccess = () => {
         let posts = request.result || [];
+        // Normalizar cada post para que author sea siempre un string seguro
+        posts = posts.map(p => ({
+          ...p,
+          author: this.normalizeAuthor(p.author)
+        }));
         // Ordenar por fecha descendente
         posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         resolve(posts);
@@ -64,21 +81,26 @@ const StorageManager = {
 
   // Guardar publicación
   async savePost(post) {
+    const cleanPost = {
+      ...post,
+      author: this.normalizeAuthor(post.author)
+    };
+
     if (!this.db) {
       const posts = await this.getPosts();
-      const idx = posts.findIndex(p => p.id === post.id);
-      if (idx >= 0) posts[idx] = post;
-      else posts.unshift(post);
-      localStorage.setItem('foromagma_posts_v2', JSON.stringify(posts));
-      return post;
+      const idx = posts.findIndex(p => p.id === cleanPost.id);
+      if (idx >= 0) posts[idx] = cleanPost;
+      else posts.unshift(cleanPost);
+      localStorage.setItem('foromagma_posts_v3', JSON.stringify(posts));
+      return cleanPost;
     }
 
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([STORE_POSTS], 'readwrite');
       const store = transaction.objectStore(STORE_POSTS);
-      const request = store.put(post);
+      const request = store.put(cleanPost);
 
-      request.onsuccess = () => resolve(post);
+      request.onsuccess = () => resolve(cleanPost);
       request.onerror = (e) => reject(e.target.error);
     });
   },
@@ -90,7 +112,10 @@ const StorageManager = {
     if (!post) throw new Error('Publicación no encontrada');
 
     if (!post.comments) post.comments = [];
-    post.comments.push(comment);
+    post.comments.push({
+      ...comment,
+      author: this.normalizeAuthor(comment.author)
+    });
 
     await this.savePost(post);
     return post;
@@ -103,8 +128,6 @@ const StorageManager = {
     if (!post) return null;
 
     if (!post.vistos) post.vistos = [];
-    
-    // Si no está registrado en los vistos, agregarlo
     const index = post.vistos.indexOf(viewerIdentifier);
     if (index === -1) {
       post.vistos.push(viewerIdentifier);
@@ -141,16 +164,18 @@ const StorageManager = {
     });
   },
 
-  // Recordar último nombre de autor usado
+  // Recordar último autor
   getLastAuthor() {
     return localStorage.getItem('foromagma_last_author') || '';
   },
 
   setLastAuthor(author) {
-    localStorage.setItem('foromagma_last_author', author);
+    if (author && typeof author === 'string') {
+      localStorage.setItem('foromagma_last_author', author.trim());
+    }
   },
 
-  // Extraer todos los links de todas las publicaciones
+  // Extraer todos los links
   extractAllLinks(posts) {
     const linksList = [];
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -159,14 +184,13 @@ const StorageManager = {
       const found = (post.content || '').match(urlRegex);
       if (found) {
         found.forEach(url => {
-          // Limpiar puntuación final si quedó pegada
           const cleanUrl = url.replace(/[.,;:)\]]+$/, '');
           if (!linksList.some(l => l.url === cleanUrl)) {
             linksList.push({
               url: cleanUrl,
               postTitle: post.title,
               postId: post.id,
-              author: post.author,
+              author: this.normalizeAuthor(post.author),
               date: post.createdAt
             });
           }

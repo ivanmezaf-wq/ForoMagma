@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>ForoMagma ⚡ Foro de Avances e Investigación en Electrónica</title>
   
-  <!-- Fuente Google: Inter -->
+  <!-- Google Font: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -23,7 +23,7 @@
     <div class="nav-container">
       <div class="brand-wrapper" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
         <div class="brand-logo-icon">
-          <!-- Icono de Circuito / Chip -->
+          <!-- Icono de Chip / Circuito -->
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="4" y="4" width="16" height="16" rx="2"/>
             <rect x="9" y="9" width="6" height="6"/>
@@ -54,7 +54,7 @@
         </div>
       </div>
 
-      <!-- Acción Rápida -->
+      <!-- Botón Nueva Publicación -->
       <div class="nav-actions">
         <button id="btnOpenNewPost" class="btn btn-primary">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -68,11 +68,11 @@
   </header>
 
   <!-- ==========================================================
-       LAYOUT PRINCIPAL: 3 COLUMNAS (CENTRO DESTACADO)
+       LAYOUT PRINCIPAL
        ========================================================== -->
   <main class="main-wrapper">
 
-    <!-- COLUMNA IZQUIERDA: VISUALIZACIÓN DE LINKS SUBIDOS -->
+    <!-- COLUMNA IZQUIERDA: ENLACES COMPARTIDOS -->
     <aside class="sidebar-left">
       <div class="card">
         <div class="card-title">
@@ -91,7 +91,6 @@
     <!-- COLUMNA CENTRAL: FEED DE PUBLICACIONES (PARTE CENTRAL) -->
     <section class="feed-center">
       
-      <!-- Barra Superior -->
       <div class="feed-header-bar">
         <div class="feed-header-title">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
@@ -101,7 +100,7 @@
         </div>
       </div>
 
-      <!-- Caja para redactar con un clic -->
+      <!-- Barra de Publicar Rápido -->
       <div class="quick-compose-card" onclick="document.getElementById('btnOpenNewPost').click()">
         <div class="quick-compose-fake-input">
           ¿Tienes un nuevo avance o reporte? Haz clic aquí para publicar...
@@ -112,12 +111,10 @@
       </div>
 
       <!-- Contenedor dinámico de publicaciones -->
-      <div id="postsContainer">
-        <!-- Renderizado dinámico desde app.js -->
-      </div>
+      <div id="postsContainer"></div>
     </section>
 
-    <!-- COLUMNA DERECHA: INFORMACIÓN DEL PROYECTO -->
+    <!-- COLUMNA DERECHA: INFORMACIÓN -->
     <aside class="sidebar-right">
       <div class="card">
         <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem;">
@@ -146,69 +143,66 @@
   </main>
 
   <!-- ==========================================================
-       VENTANA DESPLEGABLE: 70% A 90% DE PANTALLA
+       VENTANA DESPLEGABLE: 90% DE ANCHO Y 90% DE ALTO
+       DISTRIBUCIÓN TIPO EDITOR MINIMALISTA
        ========================================================== -->
   <div class="modal-overlay" id="modalNewPost">
-    <div class="modal-card-large">
-      <div class="modal-header">
-        <h2 class="modal-title">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+    <div class="modal-card-90">
+      
+      <div class="modal-header-clean">
+        <div class="modal-title-clean">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
             <path d="M12 20h9"/>
             <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
           </svg>
-          Nueva Publicación
-        </h2>
-        <button class="modal-close-btn" id="btnCloseNewPost" type="button">&times;</button>
+          Nueva Publicación de Avance
+        </div>
+        <button class="modal-close-btn" id="btnCloseNewPost" type="button" title="Cerrar">&times;</button>
       </div>
 
-      <form id="formNewPost" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
-        <div class="modal-body-large">
-          
-          <!-- Nombre o Autor -->
-          <div class="form-group">
-            <label class="form-label">Nombre o Autor <span class="req">*</span></label>
-            <input type="text" id="postAuthorInput" class="form-input" placeholder="Tu nombre o identificador (ej: Iván Meza)" required>
-          </div>
-
-          <!-- Título -->
-          <div class="form-group">
-            <label class="form-label">Título de la Publicación <span class="req">*</span></label>
-            <input type="text" id="postTitleInput" class="form-input" placeholder="Ej: Análisis de señales en ADC y ruteo de pista analógica" required>
-          </div>
-
-          <!-- Contenido o Descripción (Área grande y espaciosa) -->
-          <div class="form-group" style="flex: 1; display: flex; flex-direction: column;">
-            <label class="form-label">Contenido o Descripción del Avance <span class="req">*</span></label>
-            <textarea id="postContentInput" class="form-textarea-large" placeholder="Escribe aquí toda la descripción de lo que has estado investigando, enlaces web (https://...), resultados de laboratorio o dudas..." required></textarea>
-          </div>
-
-          <!-- Subida de Archivos: PDF, Word, Office -->
-          <div class="form-group">
-            <label class="form-label">Adjuntar Documentos (PDF, Word, Excel, Office, etc.)</label>
-            <div class="file-dropzone" id="fileDropzone">
-              <div class="dropzone-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-              </div>
-              <div class="dropzone-text">Haz clic aquí para seleccionar documentos</div>
-              <div class="dropzone-subtext">Puedes subir archivos PDF, .doc, .docx, .xls, .xlsx, .ppt, .pptx o imágenes</div>
-              <input type="file" id="postAttachmentInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.zip" style="display: none;">
-            </div>
-
-            <div class="pending-files-list" id="pendingFilesList"></div>
-          </div>
-
+      <form id="formNewPost" class="editor-form">
+        
+        <!-- Fila 1: Autor (Apenas separado por una fina línea) -->
+        <div class="editor-field-row">
+          <span class="editor-field-label">Autor:</span>
+          <input type="text" id="postAuthorInput" class="editor-input-author" placeholder="Escribe tu Nombre o Autor..." required>
         </div>
 
-        <div class="modal-footer-large">
-          <button type="button" class="btn btn-outline" onclick="document.getElementById('btnCloseNewPost').click()">Cancelar</button>
-          <button type="submit" id="btnSubmitPost" class="btn btn-primary" style="padding: 0.75rem 1.8rem; font-size: 0.95rem;">
-            Publicar Avance
-          </button>
+        <!-- Fila 2: Título (Apenas separado por una fina línea) -->
+        <div class="editor-field-row">
+          <span class="editor-field-label">Título:</span>
+          <input type="text" id="postTitleInput" class="editor-input-title" placeholder="Título del avance o publicación..." required>
         </div>
+
+        <!-- Fila 3: La mayor parte para la descripción -->
+        <div class="editor-description-area">
+          <textarea id="postContentInput" class="editor-textarea-huge" placeholder="Escribe aquí toda la descripción de lo que has estado investigando, enlaces web (https://...), resultados experimentales, esquemáticos o notas de laboratorio..." required></textarea>
+        </div>
+
+        <!-- Fila 4: Barra inferior con botón para examinar PC, badges y publicar -->
+        <div class="editor-footer-bar">
+          <div class="editor-attach-group">
+            <!-- Botón con icono de clip que manda directo a examinar la PC -->
+            <button type="button" id="btnAttachDirect" class="btn-attach-pc" title="Examinar archivos de tu equipo">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+              </svg>
+              <span>Adjuntar documento (Examinar PC)</span>
+            </button>
+            <input type="file" id="hiddenFileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.zip" style="display: none;">
+
+            <!-- Badges de archivos seleccionados -->
+            <div id="attachedBadgesContainer" class="attached-files-badges"></div>
+          </div>
+
+          <div class="editor-submit-group">
+            <button type="button" class="btn btn-outline" onclick="document.getElementById('btnCloseNewPost').click()">Cancelar</button>
+            <button type="submit" id="btnSubmitPost" class="btn btn-primary" style="padding: 0.75rem 1.8rem;">
+              Publicar Avance
+            </button>
+          </div>
+        </div>
+
       </form>
     </div>
   </div>
