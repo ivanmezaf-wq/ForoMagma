@@ -1,10 +1,10 @@
 /* ==========================================================
-   FOROMAGMA - Estilo TaganAzul (Sedimentación Académica)
-   Soporte Modo Claro / Modo Oscuro + Comentarios Desplegables
+   FOROMAGMA - Estilo TaganAzul Completo
+   Muro de Avances + Tablero Kanban + Matriz de Dependencias
+   Modo Oscuro / Claro + Sincronización Firebase
    ========================================================== */
 
 :root {
-  /* Paleta Oficial TaganAzul */
   --sand: #F3ECDD;
   --sand-deep: #E8DCC2;
   --ink: #0E2E33;
@@ -17,14 +17,15 @@
   --input-bg: #ffffff;
   --input-border: rgba(14, 46, 51, 0.2);
 
-  --bio: #3F7D52;
-  --bio-soft: #E4EEE3;
-  --log: #B8862B;
-  --log-soft: #F3E9D3;
-  --soc: #B5514E;
-  --soc-soft: #F5E3E1;
-  --ctl: #3B5FA0;
-  --ctl-soft: #E5EAF6;
+  /* Pilares Temáticos (TaganAzul) */
+  --emb: #3B5FA0;
+  --emb-soft: #E5EAF6;
+  --pcb: #B8862B;
+  --pcb-soft: #F3E9D3;
+  --ctl: #3F7D52;
+  --ctl-soft: #E4EEE3;
+  --doc: #B5514E;
+  --doc-soft: #F5E3E1;
 
   --warn: #C0392B;
   --warn-soft: #FCEBEA;
@@ -45,9 +46,6 @@
   --transition: all 0.2s ease;
 }
 
-/* ==========================================================
-   MODO OSCURO (DARK MODE)
-   ========================================================== */
 [data-theme="dark"] {
   --sand: #0a191c;
   --sand-deep: #11282c;
@@ -61,14 +59,14 @@
   --input-bg: #152d32;
   --input-border: rgba(243, 236, 221, 0.2);
 
-  --bio: #52a36b;
-  --bio-soft: #14351d;
-  --log: #d4a344;
-  --log-soft: #382c12;
-  --soc: #d16b68;
-  --soc-soft: #3b1918;
-  --ctl: #5a7ec4;
-  --ctl-soft: #17243c;
+  --emb: #5a7ec4;
+  --emb-soft: #17243c;
+  --pcb: #d4a344;
+  --pcb-soft: #382c12;
+  --ctl: #52a36b;
+  --ctl-soft: #14351d;
+  --doc: #d16b68;
+  --doc-soft: #3b1918;
 
   --warn: #e74c3c;
   --warn-soft: #3c1412;
@@ -92,43 +90,35 @@ body {
   padding-bottom: 80px;
 }
 
+.wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
 /* ==========================================================
    HEADER SUPERIOR TIPO TAGANAZUL
    ========================================================== */
-.top-header {
-  border-bottom: 2px solid var(--ink);
-  background-color: var(--sand);
-  padding: 24px 20px 18px;
-  margin-bottom: 24px;
-  transition: border-color 0.25s ease;
-}
-
-.top-header-inner {
-  max-width: 1200px;
-  margin: 0 auto;
+header.top {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   flex-wrap: wrap;
   gap: 20px;
+  border-bottom: 2px solid var(--ink);
+  padding: 24px 20px 18px;
+  margin-bottom: 20px;
 }
 
-.brand-section {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-h1.forum-title {
+h1.main-title {
   font-family: var(--font-serif);
   font-size: 2.2rem;
-  margin: 0;
+  margin: 0 0 4px;
   letter-spacing: -0.01em;
   color: var(--ink);
-  line-height: 1.15;
 }
 
-h1.forum-title span {
+h1.main-title span {
   color: var(--teal);
 }
 
@@ -138,15 +128,14 @@ h1.forum-title span {
   max-width: 580px;
 }
 
-.header-right-actions {
+.header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-/* Chips informativos tipo TaganAzul */
-.sprints-chips {
+.sprints {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -156,7 +145,7 @@ h1.forum-title span {
   border: 1px solid var(--line);
   background: var(--card-bg);
   border-radius: var(--radius-sm);
-  padding: 6px 12px;
+  padding: 6px 10px;
   font-size: 0.78rem;
   color: var(--ink-soft);
 }
@@ -167,7 +156,6 @@ h1.forum-title span {
   font-size: 0.82rem;
 }
 
-/* Botón Switch Modo Oscuro */
 .theme-toggle-btn {
   display: inline-flex;
   align-items: center;
@@ -175,7 +163,7 @@ h1.forum-title span {
   border: 1px solid var(--line);
   background: var(--card-bg);
   color: var(--ink);
-  padding: 8px 12px;
+  padding: 7px 12px;
   border-radius: var(--radius-sm);
   font-size: 0.82rem;
   font-weight: 600;
@@ -188,13 +176,9 @@ h1.forum-title span {
   border-color: var(--ink);
 }
 
-/* Botón Nueva Publicación */
-.btn-new-post {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.btn-new-main {
   background: var(--ink);
-  color: #ffffff;
+  color: #fff;
   border: none;
   padding: 8px 16px;
   border-radius: var(--radius-sm);
@@ -204,85 +188,358 @@ h1.forum-title span {
   transition: var(--transition);
 }
 
-[data-theme="dark"] .btn-new-post {
+[data-theme="dark"] .btn-new-main {
   background: var(--teal);
   color: #0a191c;
 }
 
-.btn-new-post:hover {
-  background: var(--teal-deep);
-  color: #ffffff;
+.btn-new-main:hover {
+  background: var(--teal);
+  color: #fff;
 }
 
 /* ==========================================================
-   BARRA DE BÚSQUEDA Y NAVEGACIÓN
+   NAVEGACIÓN POR PESTAÑAS (TABS TIPO TAGANAZUL)
    ========================================================== */
-.nav-bar-wrap {
-  max-width: 1200px;
-  margin: 0 auto 20px;
-  padding: 0 20px;
+nav.tabs {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 6px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--line);
   flex-wrap: wrap;
 }
 
-.search-input-wrap {
-  flex: 1;
-  min-width: 280px;
-  position: relative;
-}
-
-.search-input {
-  width: 100%;
-  padding: 9px 14px 9px 36px;
-  background: var(--card-bg);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  font-size: 0.88rem;
-  color: var(--ink);
-  font-family: inherit;
+.tab-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 10px 18px;
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   transition: var(--transition);
 }
 
-.search-input:focus {
-  outline: none;
-  border-color: var(--ink);
-  box-shadow: 0 0 0 2px var(--line);
+.tab-btn .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
 }
 
-.search-icon {
-  position: absolute;
-  left: 11px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--ink-soft);
-  pointer-events: none;
+.tab-btn.active {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+.tab-btn:hover {
+  color: var(--ink);
+}
+
+.panel {
+  display: none;
+}
+
+.panel.active {
+  display: block;
 }
 
 /* ==========================================================
-   LAYOUT PRINCIPAL: 2-3 COLUMNAS
+   TABLERO KANBAN (TAGANAZUL)
    ========================================================== */
-.wrap-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+.kanban-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.pillar-filter-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pillar-pill {
+  border: 1px solid var(--line);
+  background: var(--card-bg);
+  color: var(--ink-soft);
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pillar-pill.active {
+  background: var(--sand-deep);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(210px, 1fr));
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+}
+
+.column {
+  background: rgba(255,255,255,0.45);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme="dark"] .column {
+  background: rgba(16, 36, 40, 0.45);
+}
+
+.column-head {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.column-body {
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.kanban-card {
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+  font-size: 0.88rem;
+  box-shadow: 0 1px 3px rgba(14, 46, 51, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.kanban-card:hover {
+  border-color: var(--line);
+  box-shadow: 0 2px 6px rgba(14, 46, 51, 0.1);
+}
+
+.kanban-card .title {
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.25;
+}
+
+.kanban-card .desc {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  white-space: pre-line;
+}
+
+.kanban-card .meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+}
+
+.person {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: var(--sand-deep);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.kanban-card select {
+  font-size: 0.74rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card-bg);
+  color: var(--ink);
+  padding: 3px 5px;
+  cursor: pointer;
+}
+
+.add-card-btn {
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-align: left;
+}
+
+.add-card-btn:hover {
+  background: rgba(255,255,255,0.6);
+  color: var(--ink);
+}
+
+form.new-card {
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+form.new-card input, form.new-card textarea, form.new-card select {
+  font-size: 0.82rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  background: var(--input-bg);
+  color: var(--ink);
+  font-family: inherit;
+}
+
+form.new-card textarea {
+  resize: vertical;
+  min-height: 45px;
+}
+
+form.new-card .row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+form.new-card button {
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: none;
+  background: var(--ink);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+form.new-card .cancel {
+  background: transparent;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  padding: 0;
+  cursor: pointer;
+}
+
+/* ==========================================================
+   MATRIZ DE DEPENDENCIAS (TAGANAZUL)
+   ========================================================== */
+.matrix-wrap {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+table.matrix {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card-bg);
+  font-size: 0.86rem;
+}
+
+table.matrix th, table.matrix td {
+  border: 1px solid var(--line);
+  padding: 14px;
+  vertical-align: top;
+  text-align: left;
+}
+
+table.matrix th {
+  background: var(--ink);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+[data-theme="dark"] table.matrix th {
+  background: #142f34;
+  color: var(--ink);
+}
+
+table.matrix td.diag {
+  background: var(--sand-deep);
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+table.matrix td.corner {
+  background: var(--ink);
+}
+
+[data-theme="dark"] table.matrix td.corner {
+  background: #142f34;
+}
+
+.matrix-note {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+  max-width: 800px;
+  margin: 16px 0 0;
+  line-height: 1.5;
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ==========================================================
+   MURO DE AVANCES (FORO)
+   ========================================================== */
+.forum-grid {
   display: grid;
   grid-template-columns: 290px minmax(0, 1fr);
   gap: 22px;
   align-items: start;
-}
-
-/* ==========================================================
-   COLUMNA IZQUIERDA: ENLACES COMPARTIDOS TIPO TAGANAZUL
-   ========================================================== */
-.sidebar-left {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  position: sticky;
-  top: 20px;
 }
 
 .box-panel {
@@ -350,16 +607,6 @@ h1.forum-title span {
   color: var(--ink-soft);
 }
 
-/* ==========================================================
-   COLUMNA CENTRAL: FEED DE PUBLICACIONES
-   ========================================================== */
-.feed-center {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* Quick Compose Card */
 .quick-compose {
   background: var(--card-bg);
   border: 1px dashed var(--line);
@@ -370,6 +617,7 @@ h1.forum-title span {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  margin-bottom: 16px;
   transition: var(--transition);
 }
 
@@ -378,12 +626,6 @@ h1.forum-title span {
   border-color: var(--ink);
 }
 
-.quick-compose-text {
-  font-size: 0.88rem;
-  color: var(--ink-soft);
-}
-
-/* Tarjeta de Publicación tipo TaganAzul */
 .post-card {
   background: var(--card-bg);
   border: 1px solid var(--line);
@@ -393,6 +635,7 @@ h1.forum-title span {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-bottom: 16px;
   transition: var(--transition);
 }
 
@@ -410,12 +653,6 @@ h1.forum-title span {
   padding-bottom: 8px;
 }
 
-.post-author-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
 .person-badge {
   font-size: 0.76rem;
   font-weight: 700;
@@ -429,6 +666,7 @@ h1.forum-title span {
 .post-datetime {
   font-size: 0.75rem;
   color: var(--ink-soft);
+  margin-left: 8px;
 }
 
 .btn-delete-post {
@@ -469,12 +707,10 @@ h1.forum-title span {
   text-decoration: underline;
 }
 
-/* Adjuntos */
 .attachments-wrapper {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-top: 4px;
 }
 
 .attachments-label {
@@ -503,7 +739,6 @@ h1.forum-title span {
   color: var(--ink);
   cursor: pointer;
   text-decoration: none;
-  transition: var(--transition);
 }
 
 .att-chip:hover {
@@ -525,7 +760,6 @@ h1.forum-title span {
 .att-tag.ppt, .att-tag.pptx { background: var(--doc-ppt); }
 .att-tag.other { background: var(--teal); }
 
-/* Barra de Acciones */
 .post-actions {
   display: flex;
   align-items: center;
@@ -546,12 +780,6 @@ h1.forum-title span {
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--transition);
-}
-
-.btn-visto:hover {
-  background: var(--sand);
-  color: var(--ink);
 }
 
 .btn-visto.active {
@@ -565,7 +793,6 @@ h1.forum-title span {
   color: var(--teal);
 }
 
-/* Botón Desplegable de Comentarios */
 .btn-toggle-comments {
   display: inline-flex;
   align-items: center;
@@ -578,7 +805,6 @@ h1.forum-title span {
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--transition);
 }
 
 .btn-toggle-comments:hover {
@@ -594,9 +820,6 @@ h1.forum-title span {
   transform: rotate(180deg);
 }
 
-/* ==========================================================
-   SECCIÓN DE COMENTARIOS DESPLEGABLE
-   ========================================================== */
 .comments-accordion {
   display: none;
   flex-direction: column;
@@ -616,20 +839,6 @@ h1.forum-title span {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-.comments-accordion-title {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--ink);
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 6px;
-}
-
-.comments-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 .comment-row {
@@ -700,27 +909,14 @@ h1.forum-title span {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--transition);
-}
-
-[data-theme="dark"] .comment-submit-btn {
-  background: var(--teal);
-  color: #0a191c;
-}
-
-.comment-submit-btn:hover {
-  background: var(--teal);
 }
 
 /* ==========================================================
-   VENTANA DESPLEGABLE (MODAL 90% ESTILO TAGANAZUL)
+   MODAL 90%
    ========================================================== */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background-color: rgba(14, 46, 51, 0.65);
   backdrop-filter: blur(4px);
   z-index: 1000;
@@ -859,39 +1055,11 @@ h1.forum-title span {
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--transition);
 }
 
 .btn-attach-tagan:hover {
   background: var(--sand-deep);
   border-color: var(--ink);
-}
-
-.badges-attach-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.attached-badge-tagan {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: var(--card-bg);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: 0.78rem;
-  color: var(--ink);
-}
-
-.attached-badge-tagan button {
-  background: none;
-  border: none;
-  color: var(--warn);
-  cursor: pointer;
-  font-weight: bold;
 }
 
 .btn-submit-tagan {
@@ -903,7 +1071,6 @@ h1.forum-title span {
   font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--transition);
 }
 
 [data-theme="dark"] .btn-submit-tagan {
@@ -911,12 +1078,6 @@ h1.forum-title span {
   color: #0a191c;
 }
 
-.btn-submit-tagan:hover {
-  background: var(--teal);
-  color: #ffffff;
-}
-
-/* Indicador de Sincronización tipo TaganAzul */
 #sync-indicator {
   position: fixed;
   top: 16px;
@@ -931,7 +1092,6 @@ h1.forum-title span {
   transition: opacity 0.25s ease, transform 0.25s ease;
   pointer-events: none;
   z-index: 2000;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
 #sync-indicator.show {
@@ -939,7 +1099,6 @@ h1.forum-title span {
   transform: translateY(0);
 }
 
-/* Toast */
 .toast-container {
   position: fixed;
   bottom: 20px;
@@ -957,19 +1116,14 @@ h1.forum-title span {
   border-radius: var(--radius-sm);
   padding: 10px 16px;
   font-size: 0.85rem;
-  box-shadow: 0 4px 12px rgba(14, 46, 51, 0.2);
   animation: fadeIn 0.3s ease;
 }
 
 @media (max-width: 860px) {
-  .wrap-content {
+  .forum-grid {
     grid-template-columns: 1fr;
   }
-  .sidebar-left {
-    position: static;
-  }
-  .modal-card-90 {
-    width: 96vw;
-    height: 94vh;
+  .board {
+    grid-template-columns: 1fr;
   }
 }

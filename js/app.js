@@ -1,12 +1,29 @@
-// Lógica Principal de ForoMagma — Estilo TaganAzul con Modo Oscuro y Comentarios Desplegables
+// Lógica Integral de ForoMagma: Tablero Kanban + Muro de Avances + Matriz
+
+const STATUSES = [
+  { key: 'todo', label: 'Por hacer' },
+  { key: 'doing', label: 'En proceso' },
+  { key: 'blocked', label: 'Bloqueado' },
+  { key: 'validated', label: 'Validado por asesor' },
+  { key: 'done', label: 'Integrado' }
+];
+
+const PILLARS = {
+  emb: { label: 'Embebidos & Firmware', color: 'var(--emb)' },
+  pcb: { label: 'Circuitos & PCB', color: 'var(--pcb)' },
+  ctl: { label: 'Control & Potencia', color: 'var(--ctl)' },
+  doc: { label: 'Documentación & Tesis', color: 'var(--doc)' }
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
   const state = {
     posts: [],
+    kanbanCards: {},
+    activePillarFilter: 'all',
     searchQuery: '',
     pendingFiles: [],
     viewerId: getOrCreateViewerId(),
-    openComments: new Set() // Guarda qué posts tienen los comentarios desplegados
+    openComments: new Set()
   };
 
   // ==========================================================
@@ -17,8 +34,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const themeText = document.getElementById('themeText');
 
   function initTheme() {
-    const savedTheme = localStorage.getItem('foromagma_theme');
-    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    const saved = localStorage.getItem('foromagma_theme');
+    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       setTheme('dark');
     } else {
       setTheme('light');
@@ -49,7 +66,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
 
   // ==========================================================
-  // HELPERS Y PERSISTENCIA
+  // PESTAÑAS DE NAVEGACIÓN (TABS TIPO TAGANAZUL)
+  // ==========================================================
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    const targetPanel = document.querySelector(`.panel[data-panel="${btn.dataset.tab}"]`);
+    if (targetPanel) targetPanel.classList.add('active');
+  });
+
+  // ==========================================================
+  // HELPERS
   // ==========================================================
   function getOrCreateViewerId() {
     let id = localStorage.getItem('foromagma_viewer_id');
@@ -125,18 +155,166 @@ document.addEventListener('DOMContentLoaded', async () => {
     return { label: ext.toUpperCase() || 'DOC', cssClass: 'other' };
   }
 
-  function showToast(message, type = 'info') {
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.innerText = text;
+    return div.innerHTML;
+  }
+
+  function showToast(message) {
     const toast = document.createElement('div');
     toast.className = 'toast';
     toast.textContent = message;
-    dom.toastContainer.appendChild(toast);
+    document.getElementById('toastContainer').appendChild(toast);
     setTimeout(() => {
       toast.style.opacity = '0';
-      toast.style.transition = 'opacity 0.3s ease';
       setTimeout(() => toast.remove(), 300);
-    }, 3200);
+    }, 3000);
   }
 
+  // ==========================================================
+  // TABLERO KANBAN INTERACTIVO (TAGANAZUL)
+  // ==========================================================
+  const kanbanBoardEl = document.getElementById('kanbanBoard');
+  const pillarFilterPills = document.getElementById('pillarFilterPills');
+
+  // Filtro de pilares en Kanban
+  if (pillarFilterPills) {
+    pillarFilterPills.addEventListener('click', (e) => {
+      const pill = e.target.closest('.pillar-pill');
+      if (!pill) return;
+      document.querySelectorAll('.pillar-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      state.activePillarFilter = pill.dataset.pillar;
+      renderKanbanBoard();
+    });
+  }
+
+  function renderKanbanBoard() {
+    if (!kanbanBoardEl) return;
+    kanbanBoardEl.innerHTML = '';
+
+    const allCards = Object.values(state.kanbanCards);
+
+    STATUSES.forEach(status => {
+      let colCards = allCards.filter(c => c.status === status.key);
+      if (state.activePillarFilter !== 'all') {
+        colCards = colCards.filter(c => c.pillar === state.activePillarFilter);
+      }
+
+      const col = document.createElement('div');
+      col.className = 'column';
+      col.innerHTML = `
+        <div class="column-head">
+          <span>${status.label}</span>
+          <span style="background:var(--sand-deep); padding:2px 7px; border-radius:10px; font-size:0.75rem;">${colCards.length}</span>
+        </div>
+        <div class="column-body" id="col-body-${status.key}"></div>
+      `;
+
+      kanbanBoardEl.appendChild(col);
+      const body = col.querySelector('.column-body');
+
+      colCards.forEach(c => {
+        const cardEl = document.createElement('div');
+        const pilar = PILLARS[c.pillar] || PILLARS.emb;
+        const options = STATUSES.map(s => `<option value="${s.key}" ${s.key === c.status ? 'selected' : ''}>${s.label}</option>`).join('');
+
+        cardEl.className = 'kanban-card';
+        cardEl.style.borderLeftColor = pilar.color;
+        cardEl.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px;">
+            <div class="title">${escapeHtml(c.title)}</div>
+            <button type="button" class="btn-delete-post" style="padding:0; font-size:0.7rem;" onclick="window.removeKanbanCard('${c.id}')" title="Eliminar tarea">✕</button>
+          </div>
+          ${c.desc ? `<div class="desc">${escapeHtml(c.desc)}</div>` : ''}
+          <div class="meta">
+            <span class="person">${escapeHtml(c.person || 'Equipo')}</span>
+            <select onchange="window.moveKanbanCard('${c.id}', this.value)">${options}</select>
+          </div>
+        `;
+        body.appendChild(cardEl);
+      });
+
+      // Botón añadir tarea en esta columna
+      const addBtn = document.createElement('button');
+      addBtn.className = 'add-card-btn';
+      addBtn.textContent = '+ Añadir tarea';
+      addBtn.onclick = () => showAddKanbanForm(status.key, body, addBtn);
+      body.appendChild(addBtn);
+    });
+  }
+
+  function showAddKanbanForm(statusKey, body, addBtn) {
+    addBtn.style.display = 'none';
+    const form = document.createElement('form');
+    form.className = 'new-card';
+    form.innerHTML = `
+      <input type="text" placeholder="Título de la tarea..." required name="title">
+      <textarea placeholder="Descripción o detalles técnicos..." name="desc"></textarea>
+      <select name="pillar">
+        <option value="emb">💻 Embebidos & Firmware</option>
+        <option value="pcb">🔌 Circuitos & PCB</option>
+        <option value="ctl">⚡ Control & Potencia</option>
+        <option value="doc">🎓 Documentación & Tesis</option>
+      </select>
+      <input type="text" placeholder="Responsable (ej: Keiner, Iván...)" required name="person" value="${StorageManager.getLastAuthor()}">
+      <div class="row">
+        <button type="submit">Guardar</button>
+        <button type="button" class="cancel">Cancelar</button>
+      </div>
+    `;
+
+    body.insertBefore(form, addBtn);
+    form.querySelector('.cancel').onclick = () => {
+      form.remove();
+      addBtn.style.display = 'block';
+    };
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const title = safeTrim(fd.get('title'));
+      const person = safeTrim(fd.get('person'));
+      if (!title || !person) return;
+
+      StorageManager.setLastAuthor(person);
+
+      const id = 'task_' + Date.now();
+      const newCard = {
+        id,
+        status: statusKey,
+        title: title,
+        desc: safeTrim(fd.get('desc')),
+        pillar: fd.get('pillar') || 'emb',
+        person: person,
+        createdAt: new Date().toISOString()
+      };
+
+      await StorageManager.saveKanbanCard(newCard);
+      flashSyncIndicator();
+      showToast('Tarea añadida al tablero Kanban');
+    };
+  }
+
+  // Funciones globales para eventos inline del Kanban
+  window.moveKanbanCard = async function(id, newStatus) {
+    await StorageManager.moveKanbanCard(id, newStatus);
+    flashSyncIndicator();
+  };
+
+  window.removeKanbanCard = async function(id) {
+    if (confirm('¿Eliminar esta tarea del tablero Kanban?')) {
+      await StorageManager.deleteKanbanCard(id);
+      flashSyncIndicator();
+      showToast('Tarea eliminada');
+    }
+  };
+
+  // ==========================================================
+  // MURO DE AVANCES Y DISCUSIÓN (FORO)
+  // ==========================================================
   const dom = {
     postsContainer: document.getElementById('postsContainer'),
     linksContainer: document.getElementById('linksContainer'),
@@ -154,12 +332,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnAttachDirect: document.getElementById('btnAttachDirect'),
     hiddenFileInput: document.getElementById('hiddenFileInput'),
     attachedBadgesContainer: document.getElementById('attachedBadgesContainer'),
-    btnSubmitPost: document.getElementById('btnSubmitPost'),
-
-    toastContainer: document.getElementById('toastContainer')
+    btnSubmitPost: document.getElementById('btnSubmitPost')
   };
 
-  // Renderizar columna izquierda de enlaces
   function renderLinksSidebar() {
     if (!dom.linksContainer) return;
     const links = StorageManager.extractAllLinks(state.posts);
@@ -195,7 +370,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }).join('');
   }
 
-  // Renderizar publicaciones
   function renderPosts() {
     if (!dom.postsContainer) return;
 
@@ -212,11 +386,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (filtered.length === 0) {
       dom.postsContainer.innerHTML = `
         <div class="box-panel" style="text-align: center; padding: 40px 20px;">
-          <h3 style="font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 6px;">No hay publicaciones en el tablero</h3>
+          <h3 style="font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 6px;">No hay publicaciones en el muro</h3>
           <p style="font-size: 0.88rem; color: var(--ink-soft); max-width: 440px; margin: 0 auto 16px;">
             Sé el primero en compartir un avance, esquema o reporte técnico con el equipo.
           </p>
-          <button class="btn-new-post" onclick="document.getElementById('btnOpenNewPost').click()">
+          <button class="btn-new-main" onclick="document.getElementById('btnOpenNewPost').click()">
             + Redactar Primer Avance
           </button>
         </div>
@@ -237,7 +411,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const authorName = getAuthorName(post.author);
     const isCommentsOpen = state.openComments.has(post.id);
 
-    // Adjuntos
     let attachmentsHtml = '';
     if (post.attachments && post.attachments.length > 0) {
       attachmentsHtml = `
@@ -259,7 +432,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
     }
 
-    // Comentarios
     const commentsListHtml = comments.map(c => `
       <div class="comment-row">
         <div class="comment-meta">
@@ -290,13 +462,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         ${attachmentsHtml}
 
         <div class="post-actions">
-          <!-- Botón Visto (Ojo 👁️) -->
           <button class="btn-visto ${isVisto ? 'active' : ''}" data-post-id="${post.id}" title="Marcar como visto">
             <span>👁️</span>
             <span>Visto ${vistosCount > 0 ? `(${vistosCount})` : ''}</span>
           </button>
 
-          <!-- Botón Desplegable de Comentarios -->
           <button class="btn-toggle-comments ${isCommentsOpen ? 'open' : ''}" data-post-id="${post.id}">
             <span>💬</span>
             <span class="comments-btn-label">${commentCount > 0 ? `Comentarios (${commentCount})` : 'Comentar'}</span>
@@ -304,9 +474,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           </button>
         </div>
 
-        <!-- SECCIÓN DE COMENTARIOS DESPLEGABLE -->
         <div class="comments-accordion ${isCommentsOpen ? 'open' : ''}" id="comments-${post.id}">
-          <div class="comments-accordion-title">
+          <div style="font-size: 0.82rem; font-weight: 700; border-bottom: 1px solid var(--line); padding-bottom: 6px;">
             Comentarios y Discusión (${commentCount})
           </div>
 
@@ -325,7 +494,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function attachPostInteractions() {
-    // Toggle de comentarios desplegables
+    // Toggle comentarios
     document.querySelectorAll('.btn-toggle-comments').forEach(btn => {
       btn.addEventListener('click', () => {
         const postId = btn.getAttribute('data-post-id');
@@ -344,7 +513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
-    // Eliminar publicación
+    // Eliminar post
     document.querySelectorAll('.btn-delete-post').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -382,7 +551,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!att || !att.data) return;
 
         showToast(`Descargando ${fileName}...`);
-
         if (att.data.startsWith('http')) {
           window.open(att.data, '_blank');
         } else {
@@ -396,7 +564,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
-    // Enviar comentario
+    // Comentar
     document.querySelectorAll('.form-add-comment').forEach(form => {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -419,7 +587,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         textInput.value = '';
-        state.openComments.add(postId); // Asegurar que permanezca desplegado para ver el nuevo comentario
+        state.openComments.add(postId);
 
         await StorageManager.addComment(postId, newComment);
         flashSyncIndicator();
@@ -428,15 +596,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.innerText = text;
-    return div.innerHTML;
-  }
-
   // ==========================================================
-  // MODAL 90% ESTILO TAGANAZUL
+  // MODAL NUEVA PUBLICACIÓN
   // ==========================================================
   function openNewPostModal() {
     state.pendingFiles = [];
@@ -484,10 +645,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     dom.attachedBadgesContainer.innerHTML = state.pendingFiles.map((f, idx) => {
       const meta = getFileMeta(f.extension);
       return `
-        <span class="attached-badge-tagan">
+        <span style="display:inline-flex; align-items:center; gap:5px; background:var(--card-bg); border:1px solid var(--line); border-radius:var(--radius-sm); padding:4px 8px; font-size:0.78rem;">
           <strong>${f.name}</strong>
           <span>(${formatFileSize(f.size)})</span>
-          <button type="button" onclick="removePendingFile(${idx})">✕</button>
+          <button type="button" style="background:none; border:none; color:var(--warn); cursor:pointer; font-weight:bold;" onclick="removePendingFile(${idx})">✕</button>
         </span>
       `;
     }).join('');
@@ -535,7 +696,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       closeNewPostModal();
       flashSyncIndicator();
       showToast('Avance publicado con éxito');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error(err);
       showToast('Error al publicar: ' + (err.message || err));
@@ -550,11 +710,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderPosts();
   });
 
-  // Inicialización y escucha en tiempo real
-  await StorageManager.init((livePosts) => {
-    state.posts = livePosts;
-    renderPosts();
-    renderLinksSidebar();
-    flashSyncIndicator();
-  });
+  // ==========================================================
+  // INICIALIZACIÓN CON FIREBASE EN TIEMPO REAL
+  // ==========================================================
+  await StorageManager.init(
+    // Callback cuando se actualiza el Foro
+    (livePosts) => {
+      state.posts = livePosts;
+      renderPosts();
+      renderLinksSidebar();
+      flashSyncIndicator();
+    },
+    // Callback cuando se actualiza el Tablero Kanban
+    (liveCards) => {
+      state.kanbanCards = liveCards;
+      renderKanbanBoard();
+      flashSyncIndicator();
+    }
+  );
 });

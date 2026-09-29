@@ -4,101 +4,199 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="robots" content="noindex, nofollow">
-  <title>ForoMagma — Bitácora e Investigación en Electrónica</title>
+  <title>ForoMagma — Tablero de Sedimentación e Investigación</title>
   
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
   <!-- Indicador de sincronización en tiempo real -->
-  <div id="sync-indicator">Sincronizado con la nube</div>
+  <div id="sync-indicator">Tablero actualizado</div>
 
-  <!-- ==========================================================
-       CABECERA SUPERIOR (ESTILO TAGANAZUL)
-       ========================================================== -->
-  <header class="top-header">
-    <div class="top-header-inner">
-      <div class="brand-section">
-        <h1 class="forum-title">Foro<span>Magma</span></h1>
-        <div class="subtitle">Bitácora de sedimentación e investigación en Electrónica y Sistemas Embebidos</div>
+  <div class="wrap">
+
+    <!-- CABECERA SUPERIOR (ESTILO TAGANAZUL) -->
+    <header class="top">
+      <div>
+        <h1 class="main-title">Foro<span>Magma</span></h1>
+        <div class="subtitle">Tablero de sedimentación del marco teórico, avances de hardware y control — Tesis de Electrónica</div>
       </div>
 
-      <div class="header-right-actions">
-        <!-- Fases / Sprints de la Tesis -->
-        <div class="sprints-chips">
-          <div class="sprint-chip"><b>Fase 1</b>Marco y Estado del Arte</div>
+      <div class="header-actions">
+        <div class="sprints">
+          <div class="sprint-chip"><b>Fase 1</b>Marco & Estado del Arte</div>
           <div class="sprint-chip"><b>Fase 2</b>Diseño de Hardware & PCB</div>
           <div class="sprint-chip"><b>Fase 3</b>Pruebas & Tesis Final</div>
         </div>
 
         <!-- Botón Modo Oscuro -->
-        <button id="themeToggleBtn" class="theme-toggle-btn" title="Alternar modo oscuro / claro">
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="Alternar modo claro / oscuro">
           <span id="themeIcon">🌙</span>
           <span id="themeText">Modo Oscuro</span>
         </button>
 
-        <!-- Botón Redactar -->
-        <button id="btnOpenNewPost" class="btn-new-post">
+        <!-- Botón Acción Rápida -->
+        <button id="btnOpenNewPost" class="btn-new-main">
           + Redactar Avance
         </button>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- Barra de Búsqueda -->
-  <div class="nav-bar-wrap">
-    <div class="search-input-wrap">
-      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"/>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <input type="text" id="searchInput" class="search-input" placeholder="Buscar por título, contenido, enlaces o autor...">
+    <!-- NAVEGACIÓN POR PESTAÑAS (TABS TIPO TAGANAZUL) -->
+    <nav class="tabs" id="tabs">
+      <button class="tab-btn active" data-tab="kanban">
+        <span class="dot" style="background: var(--emb);"></span>Tablero Kanban
+      </button>
+      <button class="tab-btn" data-tab="forum">
+        <span class="dot" style="background: var(--ctl);"></span>Muro de Avances
+      </button>
+      <button class="tab-btn" data-tab="matrix">
+        <span class="dot" style="background: var(--pcb);"></span>Matriz de Dependencias
+      </button>
+    </nav>
+
+    <!-- ==========================================================
+         PANEL 1: TABLERO KANBAN INTERACTIVO (TAGANAZUL)
+         ========================================================== -->
+    <div class="panel active" data-panel="kanban">
+      
+      <!-- Filtros por Área del Proyecto -->
+      <div class="kanban-filter-bar">
+        <div class="pillar-filter-pills" id="pillarFilterPills">
+          <button class="pillar-pill active" data-pillar="all">Todos los pilares</button>
+          <button class="pillar-pill" data-pillar="emb"><span class="dot" style="background:var(--emb); display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:4px;"></span>Embebidos & Firmware</button>
+          <button class="pillar-pill" data-pillar="pcb"><span class="dot" style="background:var(--pcb); display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:4px;"></span>Circuitos & PCB</button>
+          <button class="pillar-pill" data-pillar="ctl"><span class="dot" style="background:var(--ctl); display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:4px;"></span>Control & Potencia</button>
+          <button class="pillar-pill" data-pillar="doc"><span class="dot" style="background:var(--doc); display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:4px;"></span>Documentación & Tesis</button>
+        </div>
+
+        <div style="font-size: 0.8rem; color: var(--ink-soft);">
+          Sincronizado en la nube para todo el equipo
+        </div>
+      </div>
+
+      <!-- Tablero Kanban de 5 Columnas -->
+      <div class="board" id="kanbanBoard">
+        <!-- Renderizado dinámico desde app.js -->
+      </div>
     </div>
+
+    <!-- ==========================================================
+         PANEL 2: MURO DE AVANCES Y DISCUSIÓN (FOROMAGMA)
+         ========================================================== -->
+    <div class="panel" data-panel="forum">
+      
+      <!-- Buscador -->
+      <div style="margin-bottom: 16px; position: relative;">
+        <input type="text" id="searchInput" class="search-input" placeholder="Buscar por título, contenido, enlaces o autor..." style="width: 100%; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--card-bg); color: var(--ink);">
+      </div>
+
+      <div class="forum-grid">
+        
+        <!-- Columna Izquierda: Enlaces Compartidos -->
+        <aside class="sidebar-left">
+          <div class="box-panel">
+            <div class="box-title">
+              <span>Enlaces Compartidos</span>
+              <span id="linksCountBadge" style="font-size: 0.72rem; background: var(--sand-deep); padding: 2px 7px; border-radius: 10px;">0</span>
+            </div>
+            <p style="font-size: 0.76rem; color: var(--ink-soft); margin-bottom: 8px;">
+              Hojas de datos, fuentes y referencias web compartidas en los avances:
+            </p>
+            <div class="links-list" id="linksContainer"></div>
+          </div>
+
+          <div class="box-panel" style="font-size: 0.8rem; color: var(--ink-soft);">
+            <div class="box-title" style="font-size: 0.95rem;">Trazabilidad</div>
+            <p style="margin-bottom: 8px;">• Las publicaciones registran fecha, hora y autor exactos.</p>
+            <p style="margin-bottom: 8px;">• Los documentos Word/PDF se alojan en la nube para descarga inmediata.</p>
+            <p>• Los comentarios se despliegan al hacer clic en <strong>💬 Comentarios</strong>.</p>
+          </div>
+        </aside>
+
+        <!-- Columna Central: Publicaciones -->
+        <section class="feed-center">
+          <div class="quick-compose" onclick="document.getElementById('btnOpenNewPost').click()">
+            <span style="font-size: 0.88rem; color: var(--ink-soft);">¿Tienes un nuevo avance o reporte técnico? Haz clic para redactar...</span>
+            <button class="btn-new-main" style="padding: 6px 12px; font-size: 0.8rem;" type="button">Redactar</button>
+          </div>
+
+          <div id="postsContainer"></div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- ==========================================================
+         PANEL 3: MATRIZ DE DEPENDENCIAS TÉCNICAS (TAGANAZUL)
+         ========================================================== -->
+    <div class="panel" data-panel="matrix">
+      <div class="legend">
+        <span><span class="dot" style="background:var(--emb)"></span>Embebidos & Firmware</span>
+        <span><span class="dot" style="background:var(--pcb)"></span>Circuitos & PCB</span>
+        <span><span class="dot" style="background:var(--ctl)"></span>Control & Potencia</span>
+        <span><span class="dot" style="background:var(--doc)"></span>Documentación & Tesis</span>
+      </div>
+
+      <div class="matrix-wrap">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th class="corner">Entrega → Recibe</th>
+              <th>Embebidos & Firmware</th>
+              <th>Circuitos & PCB</th>
+              <th>Control & Potencia</th>
+              <th>Documentación & Tesis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Embebidos & Firmware</th>
+              <td class="diag">—</td>
+              <td>Pinout, niveles lógicos (3.3V vs 5V) y consumo de corriente → define footprint y pistas de alimentación.</td>
+              <td>Tiempos de muestreo del ADC y frecuencia de modulación PWM → determinan setpoint del lazo cerrado.</td>
+              <td>Algoritmo y diagramas de flujo del código → integrados en el marco metodológico de la tesis.</td>
+            </tr>
+            <tr>
+              <th>Circuitos & PCB</th>
+              <td>Esquemático final y mapa de conexiones I2C/SPI/UART → base para configurar los periféricos en el código.</td>
+              <td class="diag">—</td>
+              <td>Lazo de corriente conmutada y aislamiento galvánico → evita inyección de ruido EMI en las etapas de potencia.</td>
+              <td>Diseño final de capas Gerber y lista de materiales (BOM) → anexo de hardware en el documento.</td>
+            </tr>
+            <tr>
+              <th>Control & Potencia</th>
+              <td>Curvas de respuesta transitoria y estabilidad del sistema → validan si el microcontrolador responde a tiempo.</td>
+              <td>Requerimientos térmicos de MOSFETs/diodos y área de disipación → condiciona el plano de cobre del PCB.</td>
+              <td class="diag">—</td>
+              <td>Resultados de simulación y pruebas empíricas de laboratorio → capítulo de resultados y análisis.</td>
+            </tr>
+            <tr>
+              <th>Documentación & Tesis</th>
+              <td>Especificaciones requeridas por el asesor y normas académicas → delimitan el alcance del firmware.</td>
+              <td>Requisitos normativos de seguridad eléctrica → aseguran que el prototipo cumpla estándares evaluables.</td>
+              <td>Objetivos específicos de la investigación → guían las pruebas de rendimiento del control.</td>
+              <td class="diag">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="matrix-note">
+        <strong>Lectura de la matriz:</strong> fila = pilar técnico que entrega el insumo; columna = pilar que lo recibe obligatoriamente. Ninguna celda debe quedar sin verificar antes de la entrega final de la tesis.
+      </p>
+    </div>
+
+    <!-- Pie de página -->
+    <footer style="margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 0.78rem; color: var(--ink-soft); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+      <span>ForoMagma — Tablero colaborativo sincronizado en tiempo real con Google Firebase.</span>
+      <span>Tesis de Ingeniería Electrónica</span>
+    </footer>
+
   </div>
 
   <!-- ==========================================================
-       CONTENIDO PRINCIPAL
-       ========================================================== -->
-  <main class="wrap-content">
-
-    <!-- COLUMNA IZQUIERDA: ENLACES COMPARTIDOS -->
-    <aside class="sidebar-left">
-      <div class="box-panel">
-        <div class="box-title">
-          <span>Enlaces Compartidos</span>
-          <span id="linksCountBadge" style="font-size: 0.72rem; background: var(--sand-deep); padding: 2px 7px; border-radius: 10px;">0</span>
-        </div>
-        <p style="font-size: 0.76rem; color: var(--ink-soft); margin-bottom: 8px;">
-          Recursos, hojas de datos y links web compartidos en los avances:
-        </p>
-        <div class="links-list" id="linksContainer"></div>
-      </div>
-
-      <div class="box-panel" style="font-size: 0.8rem; color: var(--ink-soft);">
-        <div class="box-title" style="font-size: 0.95rem;">Lineamientos</div>
-        <p style="margin-bottom: 8px;">• Indica el autor al publicar para llevar la trazabilidad del equipo.</p>
-        <p style="margin-bottom: 8px;">• Los documentos se suben y sincronizan en la nube en tiempo real.</p>
-        <p>• Los comentarios permanecen plegados para una lectura limpia de los avances.</p>
-      </div>
-    </aside>
-
-    <!-- COLUMNA CENTRAL: FEED DE PUBLICACIONES -->
-    <section class="feed-center">
-      
-      <!-- Quick Compose -->
-      <div class="quick-compose" onclick="document.getElementById('btnOpenNewPost').click()">
-        <span class="quick-compose-text">¿Nuevo avance o resultado de laboratorio? Haz clic aquí para redactar...</span>
-        <button class="btn-new-post" style="padding: 6px 12px; font-size: 0.8rem;" type="button">Redactar</button>
-      </div>
-
-      <!-- Publicaciones dinámicas -->
-      <div id="postsContainer"></div>
-    </section>
-
-  </main>
-
-  <!-- ==========================================================
-       VENTANA DESPLEGABLE: MODAL 90% (ESTILO TAGANAZUL)
+       MODAL 90%: REDACTAR AVANCE (ESTILO TAGANAZUL)
        ========================================================== -->
   <div class="modal-overlay" id="modalNewPost">
     <div class="modal-card-90">
@@ -110,24 +208,20 @@
 
       <form id="formNewPost" class="editor-form">
         
-        <!-- Fila Autor -->
         <div class="editor-field-line">
           <span class="editor-tag-label">Autor:</span>
           <input type="text" id="postAuthorInput" placeholder="Nombre del autor (ej: Keiner, Iván, Juan...)" required>
         </div>
 
-        <!-- Fila Título -->
         <div class="editor-field-line">
           <span class="editor-tag-label">Título:</span>
           <input type="text" id="postTitleInput" class="title-input" placeholder="Título del avance de investigación..." required>
         </div>
 
-        <!-- Área de Descripción (La mayor parte de la pantalla) -->
         <div class="editor-desc-wrap">
           <textarea id="postContentInput" class="editor-desc-textarea" placeholder="Escribe aquí los hallazgos, variables de control, esquemáticos, notas de laboratorio o enlaces web..." required></textarea>
         </div>
 
-        <!-- Barra Inferior -->
         <div class="editor-bottom-bar">
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             <button type="button" id="btnAttachDirect" class="btn-attach-tagan">
@@ -135,7 +229,7 @@
             </button>
             <input type="file" id="hiddenFileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.zip" style="display: none;">
             
-            <div id="attachedBadgesContainer" class="badges-attach-wrap"></div>
+            <div id="attachedBadgesContainer" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
           </div>
 
           <div style="display: flex; gap: 8px;">
