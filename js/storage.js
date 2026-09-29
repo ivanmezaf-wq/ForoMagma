@@ -1,43 +1,57 @@
-// Gestor de persistencia con IndexedDB y localStorage para ForoMagma
+// Gestor de persistencia con Firebase Cloud Firestore y Fallback Local para ForoMagma
 
-const DB_NAME = 'ForoMagmaDB';
-const DB_VERSION = 3;
-const STORE_POSTS = 'posts';
+const DB_COLLECTION = 'posts';
 
 const StorageManager = {
   db: null,
+  isFirebaseActive: false,
+  onRealtimeCallback: null,
 
-  async init() {
-    return new Promise((resolve) => {
-      if (!window.indexedDB) {
-        console.warn('IndexedDB no disponible, usando localStorage');
-        resolve(null);
-        return;
-      }
+  async init(onUpdateCallback) {
+    this.onRealtimeCallback = onUpdateCallback;
 
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+    // Verificar si Firebase está cargado y listo
+    if (typeof firestoreDb !== 'undefined' && firestoreDb) {
+      this.isFirebaseActive = true;
+      console.log('⚡ Sincronización en la nube (Firestore) ACTIVADA');
 
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(STORE_POSTS)) {
-          const postStore = db.createObjectStore(STORE_POSTS, { keyPath: 'id' });
-          postStore.createIndex('createdAt', 'createdAt', { unique: false });
-        }
-      };
+      // Escuchar cambios en TIEMPO REAL desde cualquier dispositivo
+      firestoreDb.collection(DB_COLLECTION)
+        .orderBy('createdAt', 'desc')
+        .onSnapshot((snapshot) => {
+          const posts = [];
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            posts.push({
+              ...data,
+              id: doc.id,
+              author: this.normalizeAuthor(data.author)
+            });
+          });
+          // Notificar a la interfaz en vivo
+          if (this.onRealtimeCallback) {
+            this.onRealtimeCallback(posts);
+          }
+        }, (error) => {
+          console.warn('Aviso de conexión Firestore:', error);
+          this.fallbackLocalInit();
+        });
 
-      request.onsuccess = (event) => {
-        this.db = event.target.result;
-        resolve(this.db);
-      };
+      return;
+    }
 
-      request.onerror = (event) => {
-        console.error('Error al abrir IndexedDB:', event.target.error);
-        resolve(null);
-      };
-    });
+    // Fallback local si no hay Firebase
+    this.fallbackLocalInit();
   },
 
-  // Normaliza el autor para evitar errores si viene como string u objeto
+  async fallbackLocalInit() {
+    console.log('Usando almacenamiento local de respaldo');
+    const posts = await this.getLocalPosts();
+    if (this.onRealtimeCallback) {
+      this.onRealtimeCallback(posts);
+    }
+  },
+
   normalizeAuthor(rawAuthor) {
     if (!rawAuthor) return 'Autor';
     if (typeof rawAuthor === 'string') return rawAuthor.trim() || 'Autor';
@@ -48,115 +62,160 @@ const StorageManager = {
     return String(rawAuthor).trim() || 'Autor';
   },
 
-  // Obtener publicaciones ordenadas por fecha
+  // Obtener publicaciones actuales
   async getPosts() {
-    if (!this.db) {
-      const raw = localStorage.getItem('foromagma_posts_v3');
-      const posts = raw ? JSON.parse(raw) : [];
-      return posts.map(p => ({ ...p, author: this.normalizeAuthor(p.author) }));
+    if (this.isFirebaseActive && firestoreDb) {
+      try {
+        const snapshot = await firestoreDb.collection(DB_COLLECTION).orderBy('createdAt', 'desc').get();
+        const posts = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          posts.push({
+            ...data,
+            id: doc.id,
+            author: this.normalizeAuthor(data.author)
+          });
+        });
+        return posts;
+      } catch (e) {
+        console.warn('Error al leer de Firestore, usando caché local:', e);
+      }
     }
-
-    return new Promise((resolve) => {
-      const transaction = this.db.transaction([STORE_POSTS], 'readonly');
-      const store = transaction.objectStore(STORE_POSTS);
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        let posts = request.result || [];
-        posts = posts.map(p => ({
-          ...p,
-          author: this.normalizeAuthor(p.author)
-        }));
-        posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        resolve(posts);
-      };
-
-      request.onerror = () => {
-        resolve([]);
-      };
-    });
+    return this.getLocalPosts();
   },
 
-  // Guardar publicación
+  // Guardar publicación en la nube (accesible desde cualquier celular o PC)
   async savePost(post) {
     const cleanPost = {
       ...post,
-      author: this.normalizeAuthor(post.author)
+      author: this.normalizeAuthor(post.author),
+      comments: post.comments || [],
+      vistos: post.vistos || [],
+      attachments: post.attachments || [],
+      createdAt: post.createdAt || new Date().toISOString()
     };
 
-    if (!this.db) {
-      const posts = await this.getPosts();
-      const idx = posts.findIndex(p => p.id === cleanPost.id);
-      if (idx >= 0) posts[idx] = cleanPost;
-      else posts.unshift(cleanPost);
-      localStorage.setItem('foromagma_posts_v3', JSON.stringify(posts));
-      return cleanPost;
+    // Subir archivos a Firebase Storage si está disponible
+    if (cleanPost.attachments && cleanPost.attachments.length > 0) {
+      for (const att of cleanPost.attachments) {
+        if (att.rawFile && typeof firestoreStorage !== 'undefined' && firestoreStorage) {
+          try {
+            const fileRef = firestoreStorage.ref(`archivos_tesis/${cleanPost.id}_${att.name}`);
+            await fileRef.put(att.rawFile);
+            const downloadUrl = await fileRef.getDownloadURL();
+            att.data = downloadUrl; // URL en la nube accesible desde cualquier lugar
+            delete att.rawFile;
+          } catch (storageErr) {
+            console.warn('Aviso al subir a Storage, guardando dataURL como respaldo:', storageErr);
+            delete att.rawFile;
+          }
+        } else {
+          delete att.rawFile;
+        }
+      }
     }
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([STORE_POSTS], 'readwrite');
-      const store = transaction.objectStore(STORE_POSTS);
-      const request = store.put(cleanPost);
+    if (this.isFirebaseActive && firestoreDb) {
+      try {
+        await firestoreDb.collection(DB_COLLECTION).doc(cleanPost.id).set(cleanPost);
+        return cleanPost;
+      } catch (e) {
+        console.error('Error al guardar en Firestore:', e);
+      }
+    }
 
-      request.onsuccess = () => resolve(cleanPost);
-      request.onerror = (e) => reject(e.target.error);
-    });
+    // Respaldo local
+    const local = await this.getLocalPosts();
+    const idx = local.findIndex(p => p.id === cleanPost.id);
+    if (idx >= 0) local[idx] = cleanPost;
+    else local.unshift(cleanPost);
+    localStorage.setItem('foromagma_cloud_cache', JSON.stringify(local));
+    return cleanPost;
   },
 
-  // Eliminar publicación
+  // Eliminar publicación en la nube
   async deletePost(postId) {
-    if (!this.db) {
-      let posts = await this.getPosts();
-      posts = posts.filter(p => p.id !== postId);
-      localStorage.setItem('foromagma_posts_v3', JSON.stringify(posts));
-      return true;
+    if (this.isFirebaseActive && firestoreDb) {
+      try {
+        await firestoreDb.collection(DB_COLLECTION).doc(postId).delete();
+        return true;
+      } catch (e) {
+        console.error('Error al borrar de Firestore:', e);
+      }
     }
 
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction([STORE_POSTS], 'readwrite');
-      const store = transaction.objectStore(STORE_POSTS);
-      const request = store.delete(postId);
-
-      request.onsuccess = () => resolve(true);
-      request.onerror = (e) => reject(e.target.error);
-    });
+    let local = await this.getLocalPosts();
+    local = local.filter(p => p.id !== postId);
+    localStorage.setItem('foromagma_cloud_cache', JSON.stringify(local));
+    return true;
   },
 
-  // Agregar comentario a un post
+  // Agregar comentario en la nube
   async addComment(postId, comment) {
-    const posts = await this.getPosts();
-    const post = posts.find(p => p.id === postId);
-    if (!post) throw new Error('Publicación no encontrada');
-
-    if (!post.comments) post.comments = [];
-    post.comments.push({
+    const cleanComment = {
       ...comment,
-      author: this.normalizeAuthor(comment.author)
-    });
+      author: this.normalizeAuthor(comment.author),
+      createdAt: comment.createdAt || new Date().toISOString()
+    };
 
-    await this.savePost(post);
-    return post;
-  },
-
-  // Alternar reacción "Visto" 👁️
-  async toggleVisto(postId, viewerIdentifier) {
-    const posts = await this.getPosts();
-    const post = posts.find(p => p.id === postId);
-    if (!post) return null;
-
-    if (!post.vistos) post.vistos = [];
-    const index = post.vistos.indexOf(viewerIdentifier);
-    if (index === -1) {
-      post.vistos.push(viewerIdentifier);
-    } else {
-      post.vistos.splice(index, 1);
+    if (this.isFirebaseActive && firestoreDb) {
+      try {
+        await firestoreDb.collection(DB_COLLECTION).doc(postId).update({
+          comments: firebase.firestore.FieldValue.arrayUnion(cleanComment)
+        });
+        return cleanComment;
+      } catch (e) {
+        console.warn('Error al comentar en Firestore:', e);
+      }
     }
 
-    await this.savePost(post);
-    return post;
+    const posts = await this.getLocalPosts();
+    const post = posts.find(p => p.id === postId);
+    if (post) {
+      if (!post.comments) post.comments = [];
+      post.comments.push(cleanComment);
+      localStorage.setItem('foromagma_cloud_cache', JSON.stringify(posts));
+    }
+    return cleanComment;
   },
 
-  // Lectura de archivos adjuntos (Word, PDF, Excel, etc.)
+  // Alternar "Visto" en la nube
+  async toggleVisto(postId, viewerIdentifier) {
+    if (this.isFirebaseActive && firestoreDb) {
+      try {
+        const docRef = firestoreDb.collection(DB_COLLECTION).doc(postId);
+        const docSnap = await docRef.get();
+        if (docSnap.exists) {
+          const data = docSnap.data();
+          const vistos = data.vistos || [];
+          if (vistos.includes(viewerIdentifier)) {
+            await docRef.update({
+              vistos: firebase.firestore.FieldValue.arrayRemove(viewerIdentifier)
+            });
+          } else {
+            await docRef.update({
+              vistos: firebase.firestore.FieldValue.arrayUnion(viewerIdentifier)
+            });
+          }
+        }
+        return;
+      } catch (e) {
+        console.warn('Error al actualizar Visto en Firestore:', e);
+      }
+    }
+
+    const posts = await this.getLocalPosts();
+    const post = posts.find(p => p.id === postId);
+    if (post) {
+      if (!post.vistos) post.vistos = [];
+      const idx = post.vistos.indexOf(viewerIdentifier);
+      if (idx === -1) post.vistos.push(viewerIdentifier);
+      else post.vistos.splice(idx, 1);
+      localStorage.setItem('foromagma_cloud_cache', JSON.stringify(posts));
+    }
+  },
+
+  // Procesar archivo adjunto
   readFileAttachment(file) {
     return new Promise((resolve, reject) => {
       const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'png', 'jpg', 'jpeg', 'zip'];
@@ -166,6 +225,11 @@ const StorageManager = {
         return reject(new Error(`Tipo .${extension} no permitido. Sube PDF, Word, Excel o imágenes.`));
       }
 
+      // Máximo 20MB para subir a la nube
+      if (file.size > 20 * 1024 * 1024) {
+        return reject(new Error('El archivo supera los 20MB permitidos.'));
+      }
+
       const reader = new FileReader();
       reader.onload = (e) => {
         resolve({
@@ -173,12 +237,18 @@ const StorageManager = {
           name: file.name,
           size: file.size,
           extension: extension,
-          data: e.target.result
+          data: e.target.result, // Fallback en base64
+          rawFile: file // Objeto File original para Storage
         });
       };
       reader.onerror = () => reject(new Error('Error al leer el archivo'));
       reader.readAsDataURL(file);
     });
+  },
+
+  getLocalPosts() {
+    const raw = localStorage.getItem('foromagma_cloud_cache') || localStorage.getItem('foromagma_posts_v3');
+    return raw ? JSON.parse(raw) : [];
   },
 
   getLastAuthor() {

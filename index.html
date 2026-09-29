@@ -124,7 +124,7 @@
           Investigación en Electrónica
         </h3>
         <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
-          Plataforma abierta para registrar avances con fecha y hora, subir documentos Word/PDF y comentar colaborativamente.
+          Plataforma en la nube para registrar avances con fecha y hora, subir documentos Word/PDF y debatir en tiempo real.
         </p>
       </div>
 
@@ -136,6 +136,7 @@
           <li>Indica tu <strong>Nombre o Autor</strong> al publicar.</li>
           <li>Los enlaces que pegues en el texto aparecerán automáticamente en la barra izquierda.</li>
           <li>Usa el botón <strong>👁️ Visto</strong> para confirmar lectura de avances.</li>
+          <li>Conexión <strong>en tiempo real</strong> en todos tus dispositivos.</li>
         </ul>
       </div>
     </aside>
@@ -182,7 +183,6 @@
         <!-- Fila 4: Barra inferior con botón para examinar PC, badges y publicar -->
         <div class="editor-footer-bar">
           <div class="editor-attach-group">
-            <!-- Botón con icono de clip que manda directo a examinar la PC -->
             <button type="button" id="btnAttachDirect" class="btn-attach-pc" title="Examinar archivos de tu equipo">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
@@ -191,7 +191,6 @@
             </button>
             <input type="file" id="hiddenFileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.zip" style="display: none;">
 
-            <!-- Badges de archivos seleccionados -->
             <div id="attachedBadgesContainer" class="attached-files-badges"></div>
           </div>
 
@@ -210,7 +209,13 @@
   <!-- Toast -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- Scripts -->
+  <!-- SDKs Oficiales de Google Firebase (v10 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+
+  <!-- Lógica y Persistencia de ForoMagma -->
+  <script src="js/firebase-config.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/app.js"></script>
 </body>

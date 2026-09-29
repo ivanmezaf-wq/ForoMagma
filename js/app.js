@@ -1,8 +1,6 @@
-// Lógica Principal de ForoMagma
+// Lógica Principal de ForoMagma con Sincronización en Tiempo Real
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await StorageManager.init();
-
   const state = {
     posts: [],
     searchQuery: '',
@@ -126,12 +124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return { label: ext.toUpperCase() || 'DOC', cssClass: 'type-other' };
   }
 
-  async function loadData() {
-    state.posts = await StorageManager.getPosts();
-    renderPosts();
-    renderLinksSidebar();
-  }
-
+  // Renderizar enlaces en barra izquierda
   function renderLinksSidebar() {
     if (!dom.linksContainer) return;
     const links = StorageManager.extractAllLinks(state.posts);
@@ -173,6 +166,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }).join('');
   }
 
+  // Renderizar publicaciones
   function renderPosts() {
     if (!dom.postsContainer) return;
 
@@ -190,9 +184,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       dom.postsContainer.innerHTML = `
         <div class="card" style="text-align: center; padding: 3.5rem 1.5rem;">
           <div style="font-size: 2.8rem; margin-bottom: 0.75rem;">⚡</div>
-          <h3 style="font-size: 1.25rem; color: var(--primary-dark); margin-bottom: 0.5rem;">ForoMagma está listo</h3>
+          <h3 style="font-size: 1.25rem; color: var(--primary-dark); margin-bottom: 0.5rem;">ForoMagma en la Nube</h3>
           <p style="color: var(--text-muted); font-size: 0.92rem; max-width: 440px; margin: 0 auto 1.5rem;">
-            No hay publicaciones aún. Haz clic en el botón de abajo para redactar el primer avance de la tesis o compartir documentos.
+            Sincronizado con Google Firebase. Cualquier avance o archivo que publiques aquí se reflejará al instante en cualquier teléfono o PC.
           </p>
           <button class="btn btn-primary" onclick="document.getElementById('btnOpenNewPost').click()">
             + Crear Primera Publicación
@@ -275,7 +269,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
           </div>
 
-          <!-- Botón Eliminar Publicación -->
           <button class="btn-delete-post" data-post-id="${post.id}" data-post-title="${escapeHtml(post.title)}" title="Eliminar esta publicación">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"/>
@@ -341,30 +334,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function attachPostInteractions() {
-    // Eliminar publicación
+    // Eliminar
     document.querySelectorAll('.btn-delete-post').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const postId = btn.getAttribute('data-post-id');
         const postTitle = btn.getAttribute('data-post-title') || 'esta publicación';
 
-        if (confirm(`¿Estás seguro de que deseas eliminar la publicación "${postTitle}"?`)) {
+        if (confirm(`¿Estás seguro de que deseas eliminar la publicación "${postTitle}" de todos los dispositivos?`)) {
           await StorageManager.deletePost(postId);
-          state.posts = await StorageManager.getPosts();
-          renderPosts();
-          renderLinksSidebar();
-          showToast('Publicación eliminada correctamente');
+          showToast('Publicación eliminada');
         }
       });
     });
 
-    // Botón Visto
+    // Visto
     document.querySelectorAll('.btn-visto').forEach(btn => {
       btn.addEventListener('click', async () => {
         const postId = btn.getAttribute('data-post-id');
         await StorageManager.toggleVisto(postId, state.viewerId);
-        state.posts = await StorageManager.getPosts();
-        renderPosts();
       });
     });
 
@@ -374,7 +362,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const postId = btn.getAttribute('data-post-id');
         const url = window.location.origin + window.location.pathname + '#card-' + postId;
         navigator.clipboard.writeText(url).then(() => {
-          showToast('Enlace directo copiado al portapapeles');
+          showToast('Enlace copiado al portapapeles');
         }).catch(() => {
           prompt('Copia este enlace directo:', url);
         });
@@ -392,16 +380,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         const post = state.posts.find(p => p.id === postId);
         if (!post) return;
         const att = (post.attachments || []).find(a => a.id === fileId);
-        if (!att) return;
+        if (!att || !att.data) return;
 
-        if (att.data && att.data.startsWith('data:')) {
+        showToast(`Descargando ${fileName}...`);
+
+        if (att.data.startsWith('http')) {
+          // URL en la nube de Firebase Storage
+          window.open(att.data, '_blank');
+        } else {
+          // Data URL local
           const link = document.createElement('a');
           link.href = att.data;
           link.download = fileName;
           document.body.appendChild(link);
           link.click();
           link.remove();
-          showToast(`Descargando ${fileName}...`);
         }
       });
     });
@@ -428,11 +421,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           createdAt: new Date().toISOString()
         };
 
+        textInput.value = '';
         await StorageManager.addComment(postId, newComment);
-        state.posts = await StorageManager.getPosts();
-        renderPosts();
-        renderLinksSidebar();
-        showToast('Comentario añadido');
+        showToast('Comentario enviado');
       });
     });
   }
@@ -445,7 +436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ==========================================================
-  // VENTANA 90% (MODAL MINIMALISTA)
+  // MODAL NUEVA PUBLICACIÓN
   // ==========================================================
   function openNewPostModal() {
     state.pendingFiles = [];
@@ -539,15 +530,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     dom.btnSubmitPost.disabled = true;
-    dom.btnSubmitPost.textContent = 'Publicando...';
+    dom.btnSubmitPost.textContent = state.pendingFiles.length > 0 ? 'Subiendo archivos a la nube...' : 'Publicando...';
 
     try {
       await StorageManager.savePost(newPost);
-      state.posts = await StorageManager.getPosts();
-      renderPosts();
-      renderLinksSidebar();
       closeNewPostModal();
-      showToast('¡Publicación creada exitosamente!');
+      showToast('¡Publicación guardada en la nube!');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error(err);
@@ -563,5 +551,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderPosts();
   });
 
-  await loadData();
+  // Inicializar almacenamiento y suscribirse a cambios en TIEMPO REAL
+  await StorageManager.init((livePosts) => {
+    state.posts = livePosts;
+    renderPosts();
+    renderLinksSidebar();
+  });
 });
