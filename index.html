@@ -4,201 +4,143 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="robots" content="noindex, nofollow">
-  <title>ForoMagma ⚡ Foro de Avances e Investigación en Electrónica</title>
+  <title>ForoMagma — Bitácora e Investigación en Electrónica</title>
   
-  <!-- Google Font: Inter -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Estilos del Foro -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
+  <!-- Indicador de sincronización en tiempo real -->
+  <div id="sync-indicator">Sincronizado con la nube</div>
+
   <!-- ==========================================================
-       BARRA DE NAVEGACIÓN SUPERIOR
+       CABECERA SUPERIOR (ESTILO TAGANAZUL)
        ========================================================== -->
-  <header class="navbar">
-    <div class="nav-container">
-      <div class="brand-wrapper" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
-        <div class="brand-logo-icon">
-          <!-- Icono de Chip / Circuito -->
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="4" width="16" height="16" rx="2"/>
-            <rect x="9" y="9" width="6" height="6"/>
-            <line x1="9" y1="1" x2="9" y2="4"/>
-            <line x1="15" y1="1" x2="15" y2="4"/>
-            <line x1="9" y1="20" x2="9" y2="23"/>
-            <line x1="15" y1="20" x2="15" y2="23"/>
-            <line x1="20" y1="9" x2="23" y2="9"/>
-            <line x1="20" y1="14" x2="23" y2="14"/>
-            <line x1="1" y1="9" x2="4" y2="9"/>
-            <line x1="1" y1="14" x2="4" y2="14"/>
-          </svg>
-        </div>
-        <div class="brand-text-wrap">
-          <div class="brand-title">Foro<span>Magma</span></div>
-          <div class="brand-subtitle">Investigación & Tesis en Electrónica</div>
-        </div>
+  <header class="top-header">
+    <div class="top-header-inner">
+      <div class="brand-section">
+        <h1 class="forum-title">Foro<span>Magma</span></h1>
+        <div class="subtitle">Bitácora de sedimentación e investigación en Electrónica y Sistemas Embebidos</div>
       </div>
 
-      <!-- Buscador en Vivo -->
-      <div class="nav-search-bar">
-        <div class="search-input-wrap">
-          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input type="text" id="searchInput" class="nav-search-input" placeholder="Buscar por título, contenido, enlaces o autor...">
+      <div class="header-right-actions">
+        <!-- Fases / Sprints de la Tesis -->
+        <div class="sprints-chips">
+          <div class="sprint-chip"><b>Fase 1</b>Marco y Estado del Arte</div>
+          <div class="sprint-chip"><b>Fase 2</b>Diseño de Hardware & PCB</div>
+          <div class="sprint-chip"><b>Fase 3</b>Pruebas & Tesis Final</div>
         </div>
-      </div>
 
-      <!-- Botón Nueva Publicación -->
-      <div class="nav-actions">
-        <button id="btnOpenNewPost" class="btn btn-primary">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <line x1="12" y1="5" x2="12" y2="19"/>
-            <line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          <span>Nueva Publicación</span>
+        <!-- Botón Modo Oscuro -->
+        <button id="themeToggleBtn" class="theme-toggle-btn" title="Alternar modo oscuro / claro">
+          <span id="themeIcon">🌙</span>
+          <span id="themeText">Modo Oscuro</span>
+        </button>
+
+        <!-- Botón Redactar -->
+        <button id="btnOpenNewPost" class="btn-new-post">
+          + Redactar Avance
         </button>
       </div>
     </div>
   </header>
 
+  <!-- Barra de Búsqueda -->
+  <div class="nav-bar-wrap">
+    <div class="search-input-wrap">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" id="searchInput" class="search-input" placeholder="Buscar por título, contenido, enlaces o autor...">
+    </div>
+  </div>
+
   <!-- ==========================================================
-       LAYOUT PRINCIPAL
+       CONTENIDO PRINCIPAL
        ========================================================== -->
-  <main class="main-wrapper">
+  <main class="wrap-content">
 
     <!-- COLUMNA IZQUIERDA: ENLACES COMPARTIDOS -->
     <aside class="sidebar-left">
-      <div class="card">
-        <div class="card-title">
-          <span>🔗 Enlaces Compartidos</span>
-          <span style="font-size: 0.75rem; background: var(--primary-light); color: var(--primary); padding: 0.2rem 0.55rem; border-radius: var(--radius-full);" id="linksCountBadge">0</span>
+      <div class="box-panel">
+        <div class="box-title">
+          <span>Enlaces Compartidos</span>
+          <span id="linksCountBadge" style="font-size: 0.72rem; background: var(--sand-deep); padding: 2px 7px; border-radius: 10px;">0</span>
         </div>
-        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem;">
-          Acceso rápido a todos los links y recursos web mencionados en los avances:
+        <p style="font-size: 0.76rem; color: var(--ink-soft); margin-bottom: 8px;">
+          Recursos, hojas de datos y links web compartidos en los avances:
         </p>
-        <div class="links-container" id="linksContainer">
-          <!-- Renderizado dinámico desde app.js -->
-        </div>
+        <div class="links-list" id="linksContainer"></div>
+      </div>
+
+      <div class="box-panel" style="font-size: 0.8rem; color: var(--ink-soft);">
+        <div class="box-title" style="font-size: 0.95rem;">Lineamientos</div>
+        <p style="margin-bottom: 8px;">• Indica el autor al publicar para llevar la trazabilidad del equipo.</p>
+        <p style="margin-bottom: 8px;">• Los documentos se suben y sincronizan en la nube en tiempo real.</p>
+        <p>• Los comentarios permanecen plegados para una lectura limpia de los avances.</p>
       </div>
     </aside>
 
-    <!-- COLUMNA CENTRAL: FEED DE PUBLICACIONES (PARTE CENTRAL) -->
+    <!-- COLUMNA CENTRAL: FEED DE PUBLICACIONES -->
     <section class="feed-center">
       
-      <div class="feed-header-bar">
-        <div class="feed-header-title">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
-          </svg>
-          Muro de Avances y Publicaciones
-        </div>
+      <!-- Quick Compose -->
+      <div class="quick-compose" onclick="document.getElementById('btnOpenNewPost').click()">
+        <span class="quick-compose-text">¿Nuevo avance o resultado de laboratorio? Haz clic aquí para redactar...</span>
+        <button class="btn-new-post" style="padding: 6px 12px; font-size: 0.8rem;" type="button">Redactar</button>
       </div>
 
-      <!-- Barra de Publicar Rápido -->
-      <div class="quick-compose-card" onclick="document.getElementById('btnOpenNewPost').click()">
-        <div class="quick-compose-fake-input">
-          ¿Tienes un nuevo avance o reporte? Haz clic aquí para publicar...
-        </div>
-        <button class="btn btn-primary" type="button" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
-          Redactar
-        </button>
-      </div>
-
-      <!-- Contenedor dinámico de publicaciones -->
+      <!-- Publicaciones dinámicas -->
       <div id="postsContainer"></div>
     </section>
-
-    <!-- COLUMNA DERECHA: INFORMACIÓN -->
-    <aside class="sidebar-right">
-      <div class="card">
-        <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.4rem;">
-          Bitácora de Tesis
-        </div>
-        <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary-dark); line-height: 1.35; margin-bottom: 0.65rem;">
-          Investigación en Electrónica
-        </h3>
-        <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 1rem;">
-          Plataforma en la nube para registrar avances con fecha y hora, subir documentos Word/PDF y debatir en tiempo real.
-        </p>
-      </div>
-
-      <div class="card" style="font-size: 0.84rem; color: var(--text-muted);">
-        <div style="font-size: 0.88rem; font-weight: 700; color: var(--primary-dark); margin-bottom: 0.65rem;">
-          ⚡ Guía Rápida
-        </div>
-        <ul style="padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.45rem;">
-          <li>Indica tu <strong>Nombre o Autor</strong> al publicar.</li>
-          <li>Los enlaces que pegues en el texto aparecerán automáticamente en la barra izquierda.</li>
-          <li>Usa el botón <strong>👁️ Visto</strong> para confirmar lectura de avances.</li>
-          <li>Conexión <strong>en tiempo real</strong> en todos tus dispositivos.</li>
-        </ul>
-      </div>
-    </aside>
 
   </main>
 
   <!-- ==========================================================
-       VENTANA DESPLEGABLE: 90% DE ANCHO Y 90% DE ALTO
-       DISTRIBUCIÓN TIPO EDITOR MINIMALISTA
+       VENTANA DESPLEGABLE: MODAL 90% (ESTILO TAGANAZUL)
        ========================================================== -->
   <div class="modal-overlay" id="modalNewPost">
     <div class="modal-card-90">
       
-      <div class="modal-header-clean">
-        <div class="modal-title-clean">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
-            <path d="M12 20h9"/>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-          </svg>
-          Nueva Publicación de Avance
-        </div>
-        <button class="modal-close-btn" id="btnCloseNewPost" type="button" title="Cerrar">&times;</button>
+      <div class="modal-header-tagan">
+        <div class="modal-title-tagan">Redactar Avance de Investigación</div>
+        <button class="modal-close-x" id="btnCloseNewPost" type="button" title="Cerrar">&times;</button>
       </div>
 
       <form id="formNewPost" class="editor-form">
         
-        <!-- Fila 1: Autor (Apenas separado por una fina línea) -->
-        <div class="editor-field-row">
-          <span class="editor-field-label">Autor:</span>
-          <input type="text" id="postAuthorInput" class="editor-input-author" placeholder="Escribe tu Nombre o Autor..." required>
+        <!-- Fila Autor -->
+        <div class="editor-field-line">
+          <span class="editor-tag-label">Autor:</span>
+          <input type="text" id="postAuthorInput" placeholder="Nombre del autor (ej: Keiner, Iván, Juan...)" required>
         </div>
 
-        <!-- Fila 2: Título (Apenas separado por una fina línea) -->
-        <div class="editor-field-row">
-          <span class="editor-field-label">Título:</span>
-          <input type="text" id="postTitleInput" class="editor-input-title" placeholder="Título del avance o publicación..." required>
+        <!-- Fila Título -->
+        <div class="editor-field-line">
+          <span class="editor-tag-label">Título:</span>
+          <input type="text" id="postTitleInput" class="title-input" placeholder="Título del avance de investigación..." required>
         </div>
 
-        <!-- Fila 3: La mayor parte para la descripción -->
-        <div class="editor-description-area">
-          <textarea id="postContentInput" class="editor-textarea-huge" placeholder="Escribe aquí toda la descripción de lo que has estado investigando, enlaces web (https://...), resultados experimentales, esquemáticos o notas de laboratorio..." required></textarea>
+        <!-- Área de Descripción (La mayor parte de la pantalla) -->
+        <div class="editor-desc-wrap">
+          <textarea id="postContentInput" class="editor-desc-textarea" placeholder="Escribe aquí los hallazgos, variables de control, esquemáticos, notas de laboratorio o enlaces web..." required></textarea>
         </div>
 
-        <!-- Fila 4: Barra inferior con botón para examinar PC, badges y publicar -->
-        <div class="editor-footer-bar">
-          <div class="editor-attach-group">
-            <button type="button" id="btnAttachDirect" class="btn-attach-pc" title="Examinar archivos de tu equipo">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-              </svg>
-              <span>Adjuntar documento (Examinar PC)</span>
+        <!-- Barra Inferior -->
+        <div class="editor-bottom-bar">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <button type="button" id="btnAttachDirect" class="btn-attach-tagan">
+              <span>📎</span> Adjuntar archivo (Examinar PC)
             </button>
             <input type="file" id="hiddenFileInput" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.png,.jpg,.jpeg,.zip" style="display: none;">
-
-            <div id="attachedBadgesContainer" class="attached-files-badges"></div>
+            
+            <div id="attachedBadgesContainer" class="badges-attach-wrap"></div>
           </div>
 
-          <div class="editor-submit-group">
-            <button type="button" class="btn btn-outline" onclick="document.getElementById('btnCloseNewPost').click()">Cancelar</button>
-            <button type="submit" id="btnSubmitPost" class="btn btn-primary" style="padding: 0.75rem 1.8rem;">
-              Publicar Avance
-            </button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn-attach-tagan" onclick="document.getElementById('btnCloseNewPost').click()">Cancelar</button>
+            <button type="submit" id="btnSubmitPost" class="btn-submit-tagan">Publicar Avance</button>
           </div>
         </div>
 
@@ -209,12 +151,12 @@
   <!-- Toast -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- SDKs Oficiales de Google Firebase (v10 compat) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 
-  <!-- Lógica y Persistencia de ForoMagma -->
+  <!-- Lógica -->
   <script src="js/firebase-config.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/app.js"></script>

@@ -1,13 +1,56 @@
-// Lógica Principal de ForoMagma con Sincronización en Tiempo Real
+// Lógica Principal de ForoMagma — Estilo TaganAzul con Modo Oscuro y Comentarios Desplegables
 
 document.addEventListener('DOMContentLoaded', async () => {
   const state = {
     posts: [],
     searchQuery: '',
     pendingFiles: [],
-    viewerId: getOrCreateViewerId()
+    viewerId: getOrCreateViewerId(),
+    openComments: new Set() // Guarda qué posts tienen los comentarios desplegados
   };
 
+  // ==========================================================
+  // GESTIÓN DE MODO OSCURO / CLARO
+  // ==========================================================
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const themeIcon = document.getElementById('themeIcon');
+  const themeText = document.getElementById('themeText');
+
+  function initTheme() {
+    const savedTheme = localStorage.getItem('foromagma_theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      setTheme('dark');
+    } else {
+      setTheme('light');
+    }
+  }
+
+  function setTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      if (themeIcon) themeIcon.textContent = '☀️';
+      if (themeText) themeText.textContent = 'Modo Claro';
+      localStorage.setItem('foromagma_theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      if (themeIcon) themeIcon.textContent = '🌙';
+      if (themeText) themeText.textContent = 'Modo Oscuro';
+      localStorage.setItem('foromagma_theme', 'light');
+    }
+  }
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      setTheme(isDark ? 'light' : 'dark');
+    });
+  }
+
+  initTheme();
+
+  // ==========================================================
+  // HELPERS Y PERSISTENCIA
+  // ==========================================================
   function getOrCreateViewerId() {
     let id = localStorage.getItem('foromagma_viewer_id');
     if (!id) {
@@ -31,53 +74,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     return safeTrim(author, 'Autor');
   }
 
-  function getInitials(author) {
-    const safe = getAuthorName(author);
-    const parts = safe.split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return 'FM';
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-
-  const dom = {
-    postsContainer: document.getElementById('postsContainer'),
-    linksContainer: document.getElementById('linksContainer'),
-    linksCountBadge: document.getElementById('linksCountBadge'),
-    searchInput: document.getElementById('searchInput'),
-    
-    modalNewPost: document.getElementById('modalNewPost'),
-    btnOpenNewPost: document.getElementById('btnOpenNewPost'),
-    btnQuickOpenPost: document.getElementById('btnQuickOpenPost'),
-    btnCloseNewPost: document.getElementById('btnCloseNewPost'),
-    formNewPost: document.getElementById('formNewPost'),
-    postAuthorInput: document.getElementById('postAuthorInput'),
-    postTitleInput: document.getElementById('postTitleInput'),
-    postContentInput: document.getElementById('postContentInput'),
-    
-    btnAttachDirect: document.getElementById('btnAttachDirect'),
-    hiddenFileInput: document.getElementById('hiddenFileInput'),
-    attachedBadgesContainer: document.getElementById('attachedBadgesContainer'),
-    btnSubmitPost: document.getElementById('btnSubmitPost'),
-
-    toastContainer: document.getElementById('toastContainer')
-  };
-
-  function showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    let icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>`;
-    if (type === 'error') {
-      icon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
-    }
-    toast.innerHTML = `${icon} <span>${message}</span>`;
-    dom.toastContainer.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-      toast.style.transition = 'all 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
-    }, 3500);
+  function flashSyncIndicator() {
+    const el = document.getElementById('sync-indicator');
+    if (!el) return;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 1800);
   }
 
   function formatExactDateTime(isoString) {
@@ -95,7 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     hours = hours ? hours : 12;
     const hoursStr = hours.toString().padStart(2, '0');
 
-    return `${day} ${month} ${year} • ${hoursStr}:${minutes} ${ampm}`;
+    return `${day} ${month} ${year} — ${hoursStr}:${minutes} ${ampm}`;
   }
 
   function linkifyText(text) {
@@ -117,14 +118,48 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function getFileMeta(extension) {
     const ext = safeTrim(extension).toLowerCase();
-    if (ext === 'pdf') return { label: 'PDF', cssClass: 'type-pdf' };
-    if (['doc', 'docx'].includes(ext)) return { label: 'WORD', cssClass: 'type-doc' };
-    if (['xls', 'xlsx', 'csv'].includes(ext)) return { label: 'EXCEL', cssClass: 'type-xls' };
-    if (['ppt', 'pptx'].includes(ext)) return { label: 'PPT', cssClass: 'type-ppt' };
-    return { label: ext.toUpperCase() || 'DOC', cssClass: 'type-other' };
+    if (ext === 'pdf') return { label: 'PDF', cssClass: 'pdf' };
+    if (['doc', 'docx'].includes(ext)) return { label: 'WORD', cssClass: 'doc' };
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return { label: 'EXCEL', cssClass: 'xls' };
+    if (['ppt', 'pptx'].includes(ext)) return { label: 'PPT', cssClass: 'ppt' };
+    return { label: ext.toUpperCase() || 'DOC', cssClass: 'other' };
   }
 
-  // Renderizar enlaces en barra izquierda
+  function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    dom.toastContainer.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, 3200);
+  }
+
+  const dom = {
+    postsContainer: document.getElementById('postsContainer'),
+    linksContainer: document.getElementById('linksContainer'),
+    linksCountBadge: document.getElementById('linksCountBadge'),
+    searchInput: document.getElementById('searchInput'),
+
+    modalNewPost: document.getElementById('modalNewPost'),
+    btnOpenNewPost: document.getElementById('btnOpenNewPost'),
+    btnCloseNewPost: document.getElementById('btnCloseNewPost'),
+    formNewPost: document.getElementById('formNewPost'),
+    postAuthorInput: document.getElementById('postAuthorInput'),
+    postTitleInput: document.getElementById('postTitleInput'),
+    postContentInput: document.getElementById('postContentInput'),
+
+    btnAttachDirect: document.getElementById('btnAttachDirect'),
+    hiddenFileInput: document.getElementById('hiddenFileInput'),
+    attachedBadgesContainer: document.getElementById('attachedBadgesContainer'),
+    btnSubmitPost: document.getElementById('btnSubmitPost'),
+
+    toastContainer: document.getElementById('toastContainer')
+  };
+
+  // Renderizar columna izquierda de enlaces
   function renderLinksSidebar() {
     if (!dom.linksContainer) return;
     const links = StorageManager.extractAllLinks(state.posts);
@@ -135,8 +170,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (links.length === 0) {
       dom.linksContainer.innerHTML = `
-        <div class="empty-links-state">
-          Aún no se han compartido enlaces en las publicaciones.
+        <div style="font-size: 0.78rem; color: var(--ink-soft); font-style: italic; padding: 4px 0;">
+          No hay enlaces compartidos todavía.
         </div>
       `;
       return;
@@ -147,20 +182,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         hostname = new URL(item.url).hostname;
       } catch (e) {
-        hostname = 'Enlace externo';
+        hostname = 'Enlace';
       }
 
       return `
-        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="link-card-item" title="${item.url}">
-          <div class="link-domain">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-            </svg>
-            ${hostname}
-          </div>
-          <div class="link-full-url">${item.url}</div>
-          <div class="link-source-post">De: ${escapeHtml(item.postTitle || 'Publicación')} (${escapeHtml(getAuthorName(item.author))})</div>
+        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="link-item-card" title="${item.url}">
+          <span class="link-domain">${hostname}</span>
+          <span class="link-url">${item.url}</span>
+          <span class="link-author-ref">De: ${escapeHtml(item.postTitle || 'Avance')} (${escapeHtml(getAuthorName(item.author))})</span>
         </a>
       `;
     }).join('');
@@ -182,14 +211,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (filtered.length === 0) {
       dom.postsContainer.innerHTML = `
-        <div class="card" style="text-align: center; padding: 3.5rem 1.5rem;">
-          <div style="font-size: 2.8rem; margin-bottom: 0.75rem;">⚡</div>
-          <h3 style="font-size: 1.25rem; color: var(--primary-dark); margin-bottom: 0.5rem;">ForoMagma en la Nube</h3>
-          <p style="color: var(--text-muted); font-size: 0.92rem; max-width: 440px; margin: 0 auto 1.5rem;">
-            Sincronizado con Google Firebase. Cualquier avance o archivo que publiques aquí se reflejará al instante en cualquier teléfono o PC.
+        <div class="box-panel" style="text-align: center; padding: 40px 20px;">
+          <h3 style="font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 6px;">No hay publicaciones en el tablero</h3>
+          <p style="font-size: 0.88rem; color: var(--ink-soft); max-width: 440px; margin: 0 auto 16px;">
+            Sé el primero en compartir un avance, esquema o reporte técnico con el equipo.
           </p>
-          <button class="btn btn-primary" onclick="document.getElementById('btnOpenNewPost').click()">
-            + Crear Primera Publicación
+          <button class="btn-new-post" onclick="document.getElementById('btnOpenNewPost').click()">
+            + Redactar Primer Avance
           </button>
         </div>
       `;
@@ -204,33 +232,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     const vistos = post.vistos || [];
     const isVisto = vistos.includes(state.viewerId);
     const vistosCount = vistos.length;
-    const commentCount = (post.comments || []).length;
+    const comments = post.comments || [];
+    const commentCount = comments.length;
     const authorName = getAuthorName(post.author);
+    const isCommentsOpen = state.openComments.has(post.id);
 
+    // Adjuntos
     let attachmentsHtml = '';
     if (post.attachments && post.attachments.length > 0) {
       attachmentsHtml = `
-        <div class="post-attachments-section">
-          <div class="attachments-title">Documentos Adjuntos (${post.attachments.length})</div>
+        <div class="attachments-wrapper">
+          <div class="attachments-label">Documentos (${post.attachments.length})</div>
           <div class="attachments-grid">
             ${post.attachments.map(att => {
               const meta = getFileMeta(att.extension);
               return `
-                <div class="attachment-chip" data-file-id="${att.id}" data-file-name="${att.name}" data-post-id="${post.id}">
-                  <div class="attachment-icon-box ${meta.cssClass}">
-                    ${meta.label}
-                  </div>
-                  <div class="attachment-info">
-                    <span class="attachment-filename" title="${att.name}">${att.name}</span>
-                    <span class="attachment-filesize">${formatFileSize(att.size)}</span>
-                  </div>
-                  <div title="Descargar archivo">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="7 10 12 15 17 10"/>
-                      <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                  </div>
+                <div class="att-chip" data-file-id="${att.id}" data-file-name="${att.name}" data-post-id="${post.id}" title="Clic para descargar">
+                  <span class="att-tag ${meta.cssClass}">${meta.label}</span>
+                  <strong>${att.name}</strong>
+                  <span style="color: var(--ink-soft); font-size: 0.72rem;">(${formatFileSize(att.size)})</span>
                 </div>
               `;
             }).join('')}
@@ -239,44 +259,27 @@ document.addEventListener('DOMContentLoaded', async () => {
       `;
     }
 
-    const commentsListHtml = (post.comments || []).map(c => `
-      <div class="comment-card">
-        <div class="comment-author-circle">${getInitials(c.author)}</div>
-        <div class="comment-bubble">
-          <div class="comment-author-row">
-            <span class="comment-author-name">${escapeHtml(getAuthorName(c.author))}</span>
-            <span class="comment-date">${formatExactDateTime(c.createdAt)}</span>
-          </div>
-          <div class="comment-body">${linkifyText(escapeHtml(c.content))}</div>
+    // Comentarios
+    const commentsListHtml = comments.map(c => `
+      <div class="comment-row">
+        <div class="comment-meta">
+          <span class="comment-author">${escapeHtml(getAuthorName(c.author))}</span>
+          <span class="comment-time">${formatExactDateTime(c.createdAt)}</span>
         </div>
+        <div class="comment-text">${linkifyText(escapeHtml(c.content))}</div>
       </div>
     `).join('');
 
     return `
       <article class="post-card" id="card-${post.id}">
         <div class="post-header">
-          <div class="post-author-box">
-            <div class="author-circle">${getInitials(authorName)}</div>
-            <div>
-              <div class="post-author-name">${escapeHtml(authorName)}</div>
-              <div class="post-datetime">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                ${formatExactDateTime(post.createdAt)}
-              </div>
-            </div>
+          <div class="post-author-row">
+            <span class="person-badge">${escapeHtml(authorName)}</span>
+            <span class="post-datetime">${formatExactDateTime(post.createdAt)}</span>
           </div>
 
-          <button class="btn-delete-post" data-post-id="${post.id}" data-post-title="${escapeHtml(post.title)}" title="Eliminar esta publicación">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-              <line x1="10" y1="11" x2="10" y2="17"/>
-              <line x1="14" y1="11" x2="14" y2="17"/>
-            </svg>
-            <span>Eliminar</span>
+          <button class="btn-delete-post" data-post-id="${post.id}" data-post-title="${escapeHtml(post.title)}" title="Eliminar publicación">
+            ✕ Eliminar
           </button>
         </div>
 
@@ -286,47 +289,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         ${attachmentsHtml}
 
-        <div class="post-actions-bar">
+        <div class="post-actions">
+          <!-- Botón Visto (Ojo 👁️) -->
           <button class="btn-visto ${isVisto ? 'active' : ''}" data-post-id="${post.id}" title="Marcar como visto">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
+            <span>👁️</span>
             <span>Visto ${vistosCount > 0 ? `(${vistosCount})` : ''}</span>
           </button>
 
-          <button class="action-btn btn-toggle-comments" data-post-id="${post.id}">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span>${commentCount} Comentarios</span>
-          </button>
-
-          <button class="action-btn btn-share" data-post-id="${post.id}" title="Copiar enlace">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-            </svg>
-            <span>Compartir</span>
+          <!-- Botón Desplegable de Comentarios -->
+          <button class="btn-toggle-comments ${isCommentsOpen ? 'open' : ''}" data-post-id="${post.id}">
+            <span>💬</span>
+            <span class="comments-btn-label">${commentCount > 0 ? `Comentarios (${commentCount})` : 'Comentar'}</span>
+            <span class="arrow">▼</span>
           </button>
         </div>
 
-        <div class="comments-section" id="comments-${post.id}">
-          <div class="comments-header">Comentarios (${commentCount})</div>
-          
-          <div class="comments-list">
-            ${commentsListHtml || '<div style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No hay comentarios todavía. Deja tu observación.</div>'}
+        <!-- SECCIÓN DE COMENTARIOS DESPLEGABLE -->
+        <div class="comments-accordion ${isCommentsOpen ? 'open' : ''}" id="comments-${post.id}">
+          <div class="comments-accordion-title">
+            Comentarios y Discusión (${commentCount})
           </div>
 
-          <form class="add-comment-box form-add-comment" data-post-id="${post.id}">
-            <div class="comment-inputs-row">
-              <input type="text" class="comment-author-input input-comment-author" placeholder="Tu Nombre o Autor..." value="${StorageManager.getLastAuthor()}" required>
-            </div>
-            <textarea class="comment-textarea input-comment-text" placeholder="Escribe tu comentario o respuesta..." required></textarea>
-            <div style="display: flex; justify-content: flex-end;">
-              <button type="submit" class="btn btn-primary" style="padding: 0.45rem 1rem; font-size: 0.82rem;">Comentar</button>
-            </div>
+          <div class="comments-list">
+            ${commentsListHtml || '<div style="font-size: 0.78rem; color: var(--ink-soft); font-style: italic;">No hay comentarios aún. Deja tu observación a continuación:</div>'}
+          </div>
+
+          <form class="comment-form form-add-comment" data-post-id="${post.id}">
+            <input type="text" class="comment-author-input input-comment-author" placeholder="Tu nombre..." value="${StorageManager.getLastAuthor()}" required>
+            <textarea class="comment-body-textarea input-comment-text" placeholder="Escribe un comentario o respuesta..." required></textarea>
+            <button type="submit" class="comment-submit-btn">Comentar</button>
           </form>
         </div>
       </article>
@@ -334,15 +325,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function attachPostInteractions() {
-    // Eliminar
+    // Toggle de comentarios desplegables
+    document.querySelectorAll('.btn-toggle-comments').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const postId = btn.getAttribute('data-post-id');
+        const accordion = document.getElementById('comments-' + postId);
+        if (!accordion) return;
+
+        if (state.openComments.has(postId)) {
+          state.openComments.delete(postId);
+          accordion.classList.remove('open');
+          btn.classList.remove('open');
+        } else {
+          state.openComments.add(postId);
+          accordion.classList.add('open');
+          btn.classList.add('open');
+        }
+      });
+    });
+
+    // Eliminar publicación
     document.querySelectorAll('.btn-delete-post').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const postId = btn.getAttribute('data-post-id');
         const postTitle = btn.getAttribute('data-post-title') || 'esta publicación';
 
-        if (confirm(`¿Estás seguro de que deseas eliminar la publicación "${postTitle}" de todos los dispositivos?`)) {
+        if (confirm(`¿Estás seguro de que deseas eliminar la publicación "${postTitle}"?`)) {
           await StorageManager.deletePost(postId);
+          flashSyncIndicator();
           showToast('Publicación eliminada');
         }
       });
@@ -353,24 +364,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.addEventListener('click', async () => {
         const postId = btn.getAttribute('data-post-id');
         await StorageManager.toggleVisto(postId, state.viewerId);
-      });
-    });
-
-    // Compartir
-    document.querySelectorAll('.btn-share').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const postId = btn.getAttribute('data-post-id');
-        const url = window.location.origin + window.location.pathname + '#card-' + postId;
-        navigator.clipboard.writeText(url).then(() => {
-          showToast('Enlace copiado al portapapeles');
-        }).catch(() => {
-          prompt('Copia este enlace directo:', url);
-        });
+        flashSyncIndicator();
       });
     });
 
     // Descarga de archivos
-    document.querySelectorAll('.attachment-chip').forEach(chip => {
+    document.querySelectorAll('.att-chip').forEach(chip => {
       chip.addEventListener('click', (e) => {
         e.preventDefault();
         const postId = chip.getAttribute('data-post-id');
@@ -385,10 +384,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         showToast(`Descargando ${fileName}...`);
 
         if (att.data.startsWith('http')) {
-          // URL en la nube de Firebase Storage
           window.open(att.data, '_blank');
         } else {
-          // Data URL local
           const link = document.createElement('a');
           link.href = att.data;
           link.download = fileName;
@@ -399,7 +396,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     });
 
-    // Comentar
+    // Enviar comentario
     document.querySelectorAll('.form-add-comment').forEach(form => {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -422,8 +419,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         textInput.value = '';
+        state.openComments.add(postId); // Asegurar que permanezca desplegado para ver el nuevo comentario
+
         await StorageManager.addComment(postId, newComment);
-        showToast('Comentario enviado');
+        flashSyncIndicator();
+        showToast('Comentario añadido');
       });
     });
   }
@@ -436,7 +436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ==========================================================
-  // MODAL NUEVA PUBLICACIÓN
+  // MODAL 90% ESTILO TAGANAZUL
   // ==========================================================
   function openNewPostModal() {
     state.pendingFiles = [];
@@ -454,7 +454,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   dom.btnOpenNewPost.addEventListener('click', openNewPostModal);
-  if (dom.btnQuickOpenPost) dom.btnQuickOpenPost.addEventListener('click', openNewPostModal);
   dom.btnCloseNewPost.addEventListener('click', closeNewPostModal);
 
   dom.modalNewPost.addEventListener('click', (e) => {
@@ -472,9 +471,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const fileObj = await StorageManager.readFileAttachment(file);
         state.pendingFiles.push(fileObj);
         renderAttachedBadges();
-        showToast(`Archivo adjunto: ${file.name}`);
+        showToast(`Adjunto: ${file.name}`);
       } catch (err) {
-        showToast(err.message, 'error');
+        showToast(err.message);
       }
     }
     dom.hiddenFileInput.value = '';
@@ -485,11 +484,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     dom.attachedBadgesContainer.innerHTML = state.pendingFiles.map((f, idx) => {
       const meta = getFileMeta(f.extension);
       return `
-        <span class="attached-badge-chip">
-          <span>${meta.label}</span>
-          <strong title="${f.name}">${f.name}</strong>
-          <span style="color: var(--text-muted); font-size: 0.72rem;">(${formatFileSize(f.size)})</span>
-          <button type="button" class="attached-remove-x" onclick="removePendingFile(${idx})" title="Quitar archivo">✕</button>
+        <span class="attached-badge-tagan">
+          <strong>${f.name}</strong>
+          <span>(${formatFileSize(f.size)})</span>
+          <button type="button" onclick="removePendingFile(${idx})">✕</button>
         </span>
       `;
     }).join('');
@@ -508,11 +506,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const content = safeTrim(dom.postContentInput.value);
 
     if (!author) {
-      showToast('Por favor escribe el Nombre o Autor', 'error');
+      showToast('Por favor escribe el Nombre o Autor');
       return;
     }
     if (!title || !content) {
-      showToast('Por favor completa el título y la descripción', 'error');
+      showToast('Por favor completa el título y la descripción');
       return;
     }
 
@@ -530,16 +528,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     dom.btnSubmitPost.disabled = true;
-    dom.btnSubmitPost.textContent = state.pendingFiles.length > 0 ? 'Subiendo archivos a la nube...' : 'Publicando...';
+    dom.btnSubmitPost.textContent = state.pendingFiles.length > 0 ? 'Subiendo archivos...' : 'Publicando...';
 
     try {
       await StorageManager.savePost(newPost);
       closeNewPostModal();
-      showToast('¡Publicación guardada en la nube!');
+      flashSyncIndicator();
+      showToast('Avance publicado con éxito');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error(err);
-      showToast('Error al publicar: ' + (err.message || err), 'error');
+      showToast('Error al publicar: ' + (err.message || err));
     } finally {
       dom.btnSubmitPost.disabled = false;
       dom.btnSubmitPost.textContent = 'Publicar Avance';
@@ -551,10 +550,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderPosts();
   });
 
-  // Inicializar almacenamiento y suscribirse a cambios en TIEMPO REAL
+  // Inicialización y escucha en tiempo real
   await StorageManager.init((livePosts) => {
     state.posts = livePosts;
     renderPosts();
     renderLinksSidebar();
+    flashSyncIndicator();
   });
 });
