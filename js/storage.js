@@ -2,20 +2,23 @@
 
 const DB_COLLECTION = 'posts';
 const KANBAN_COLLECTION = 'kanban_tasks';
+const RATINGS_COLLECTION = 'ratings';
 
 const StorageManager = {
   db: null,
   isFirebaseActive: false,
   onPostsUpdateCallback: null,
   onKanbanUpdateCallback: null,
+  onRatingsUpdateCallback: null,
 
-  async init(onPostsUpdate, onKanbanUpdate) {
+  async init(onPostsUpdate, onKanbanUpdate, onRatingsUpdate) {
     this.onPostsUpdateCallback = onPostsUpdate;
     this.onKanbanUpdateCallback = onKanbanUpdate;
+    this.onRatingsUpdateCallback = onRatingsUpdate;
 
     if (typeof firestoreDb !== 'undefined' && firestoreDb) {
       this.isFirebaseActive = true;
-      console.log('⚡ Conexión Firestore activa (Posts + Kanban)');
+      console.log('⚡ Conexión Firestore activa (Posts + Kanban + Clasificación)');
 
       // 1. Escuchar Publicaciones del Foro en tiempo real
       firestoreDb.collection(DB_COLLECTION)
@@ -43,6 +46,19 @@ const StorageManager = {
           if (this.onKanbanUpdateCallback) this.onKanbanUpdateCallback(cards);
         }, (err) => console.warn('Error en snapshot kanban:', err));
 
+      // 3. Escuchar Clasificación de Enlaces y Papers (Semáforo Verde/Amarillo/Rojo)
+      firestoreDb.collection(RATINGS_COLLECTION).doc('classification_map')
+        .onSnapshot((doc) => {
+          if (doc.exists) {
+            const data = doc.data() || {};
+            const paperRatings = data.papers || {};
+            const linkRatings = data.links || {};
+            localStorage.setItem('foromagma_paper_ratings', JSON.stringify(paperRatings));
+            localStorage.setItem('foromagma_link_ratings', JSON.stringify(linkRatings));
+            if (this.onRatingsUpdateCallback) this.onRatingsUpdateCallback(paperRatings, linkRatings);
+          }
+        }, (err) => console.warn('Error en snapshot ratings:', err));
+
       return;
     }
 
@@ -56,6 +72,10 @@ const StorageManager = {
 
     const cards = await this.getLocalKanban();
     if (this.onKanbanUpdateCallback) this.onKanbanUpdateCallback(cards);
+
+    if (this.onRatingsUpdateCallback) {
+      this.onRatingsUpdateCallback(this.getLocalPaperRatings(), this.getLocalLinkRatings());
+    }
   },
 
   normalizeAuthor(rawAuthor) {
@@ -311,5 +331,60 @@ const StorageManager = {
     });
 
     return linksList;
+  },
+
+  // ==========================================================
+  // CLASIFICACIÓN DE SEMÁFORO (VERDE 🟢 / AMARILLO 🟡 / ROJO 🔴)
+  // ==========================================================
+  getLocalPaperRatings() {
+    const raw = localStorage.getItem('foromagma_paper_ratings');
+    return raw ? JSON.parse(raw) : {};
+  },
+
+  async savePaperRating(paperKey, color) {
+    const current = this.getLocalPaperRatings();
+    if (current[paperKey] === color) {
+      delete current[paperKey]; // Clic sobre el mismo color lo desmarca
+    } else {
+      current[paperKey] = color;
+    }
+    localStorage.setItem('foromagma_paper_ratings', JSON.stringify(current));
+
+    if (this.isFirebaseActive && firestoreDb) {
+      try {
+        await firestoreDb.collection(RATINGS_COLLECTION).doc('classification_map').set({
+          papers: current
+        }, { merge: true });
+      } catch (e) {
+        console.warn('Error guardando calificación en Firestore:', e);
+      }
+    }
+    return current;
+  },
+
+  getLocalLinkRatings() {
+    const raw = localStorage.getItem('foromagma_link_ratings');
+    return raw ? JSON.parse(raw) : {};
+  },
+
+  async saveLinkRating(linkKey, color) {
+    const current = this.getLocalLinkRatings();
+    if (current[linkKey] === color) {
+      delete current[linkKey]; // Clic sobre el mismo color lo desmarca
+    } else {
+      current[linkKey] = color;
+    }
+    localStorage.setItem('foromagma_link_ratings', JSON.stringify(current));
+
+    if (this.isFirebaseActive && firestoreDb) {
+      try {
+        await firestoreDb.collection(RATINGS_COLLECTION).doc('classification_map').set({
+          links: current
+        }, { merge: true });
+      } catch (e) {
+        console.warn('Error guardando calificación de enlace en Firestore:', e);
+      }
+    }
+    return current;
   }
 };

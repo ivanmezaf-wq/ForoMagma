@@ -1432,3 +1432,389 @@ table.matrix td.corner {
   background: #d1fae5;
 }
 
+/* ==========================================================
+   SEMÁFORO DE CLASIFICACIÓN DE LINKS Y PAPERS (VERDE / AMARILLO / ROJO)
+   ========================================================== */
+.traffic-light-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--sand);
+  border: 1px solid var(--line);
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.traffic-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-right: 2px;
+}
+
+.traffic-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  opacity: 0.38;
+  padding: 0;
+  outline: none;
+}
+
+.traffic-dot:hover {
+  transform: scale(1.3);
+  opacity: 0.85;
+}
+
+.traffic-dot.dot-green {
+  background-color: #22c55e;
+}
+
+.traffic-dot.dot-yellow {
+  background-color: #eab308;
+}
+
+.traffic-dot.dot-red {
+  background-color: #ef4444;
+}
+
+.traffic-dot.selected {
+  opacity: 1;
+  transform: scale(1.25);
+  box-shadow: 0 0 0 2px var(--card-bg), 0 0 8px currentColor;
+}
+
+.traffic-dot.dot-green.selected {
+  border-color: #15803d;
+  box-shadow: 0 0 0 2px var(--card-bg), 0 0 8px rgba(34, 197, 94, 0.7);
+}
+
+.traffic-dot.dot-yellow.selected {
+  border-color: #a16207;
+  box-shadow: 0 0 0 2px var(--card-bg), 0 0 8px rgba(234, 179, 8, 0.7);
+}
+
+.traffic-dot.dot-red.selected {
+  border-color: #b91c1c;
+  box-shadow: 0 0 0 2px var(--card-bg), 0 0 8px rgba(239, 68, 68, 0.7);
+}
+
+/* Indicador de estado en la tarjeta del artículo */
+.paper-card.rated-green {
+  border-left-color: #22c55e !important;
+  background: linear-gradient(to right, rgba(34, 197, 94, 0.04), var(--card-bg) 18%);
+}
+
+.paper-card.rated-yellow {
+  border-left-color: #eab308 !important;
+  background: linear-gradient(to right, rgba(234, 179, 8, 0.04), var(--card-bg) 18%);
+}
+
+.paper-card.rated-red {
+  border-left-color: #ef4444 !important;
+  opacity: 0.72;
+  background: linear-gradient(to right, rgba(239, 68, 68, 0.04), var(--card-bg) 18%);
+}
+
+.paper-card.rated-red:hover {
+  opacity: 1;
+}
+
+.badge-rating {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-rating.green {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.badge-rating.yellow {
+  background: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fde047;
+}
+
+.badge-rating.red {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+[data-theme="dark"] .badge-rating.green {
+  background: #14532d;
+  color: #86efac;
+  border-color: #166534;
+}
+
+[data-theme="dark"] .badge-rating.yellow {
+  background: #713f12;
+  color: #fef08a;
+  border-color: #854d0e;
+}
+
+[data-theme="dark"] .badge-rating.red {
+  background: #7f1d1d;
+  color: #fca5a5;
+  border-color: #991b1b;
+}
+
+/* Semáforo en la barra lateral de enlaces */
+.link-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  transition: var(--transition);
+}
+
+.link-item-row:hover {
+  background: var(--sand);
+  border-color: var(--ink);
+}
+
+.link-item-row.rated-green {
+  border-left: 3px solid #22c55e;
+}
+
+.link-item-row.rated-yellow {
+  border-left: 3px solid #eab308;
+}
+
+.link-item-row.rated-red {
+  border-left: 3px solid #ef4444;
+  opacity: 0.65;
+}
+
+.link-item-content {
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.traffic-light-compact {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  background: var(--sand);
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.traffic-dot-sm {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  cursor: pointer;
+  opacity: 0.35;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  padding: 0;
+}
+
+.traffic-dot-sm:hover {
+  transform: scale(1.3);
+  opacity: 0.9;
+}
+
+.traffic-dot-sm.dot-green { background: #22c55e; }
+.traffic-dot-sm.dot-yellow { background: #eab308; }
+.traffic-dot-sm.dot-red { background: #ef4444; }
+
+.traffic-dot-sm.selected {
+  opacity: 1;
+  transform: scale(1.25);
+  box-shadow: 0 0 5px currentColor;
+}
+
+/* Filtros por Semáforo / PRISMA */
+.traffic-filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+
+.traffic-filter-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: var(--transition);
+}
+
+.traffic-filter-btn:hover {
+  background: var(--sand);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.traffic-filter-btn.active {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.traffic-filter-btn.green.active {
+  background: #15803d;
+  color: #fff;
+  border-color: #15803d;
+}
+
+.traffic-filter-btn.yellow.active {
+  background: #a16207;
+  color: #fff;
+  border-color: #a16207;
+}
+
+.traffic-filter-btn.red.active {
+  background: #b91c1c;
+  color: #fff;
+  border-color: #b91c1c;
+}
+
+/* ==========================================================
+   TARJETA CONECTOR: DESCUBRIDOR TAYRONA (UNIMAGDALENA)
+   ========================================================== */
+.tayrona-connector-card {
+  background: linear-gradient(135deg, rgba(14, 46, 51, 0.05), rgba(42, 122, 110, 0.08));
+  border: 1px solid var(--teal);
+  border-left: 5px solid var(--teal);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+[data-theme="dark"] .tayrona-connector-card {
+  background: linear-gradient(135deg, rgba(42, 122, 110, 0.15), rgba(14, 46, 51, 0.3));
+}
+
+.tayrona-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tayrona-title-row h3 {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.tayrona-badge {
+  background: var(--sand-deep);
+  border: 1px solid var(--teal);
+  color: var(--teal);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.tayrona-desc {
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.tayrona-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.btn-tayrona-query {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--teal);
+  color: var(--ink);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-tayrona-query:hover {
+  background: var(--teal);
+  color: #fff;
+}
+
+/* Estado de auto-sync de OpenAlex */
+.auto-sync-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--teal);
+  background: var(--sand-deep);
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+
+.auto-sync-pulse {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
+  animation: syncPulse 2s infinite;
+}
+
+@keyframes syncPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+

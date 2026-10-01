@@ -197,8 +197,13 @@
       
       <div class="papers-header-bar">
         <div class="papers-title-group">
-          <h2>Literatura Académica Especializada & APIs</h2>
-          <p>Indexado oficial desde OpenAlex y Crossref sobre Baterías de Ion de Litio, Segunda Vida, BMS, SoH y SoC.</p>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <h2 style="margin:0;">Literatura Académica Especializada & APIs</h2>
+            <div class="auto-sync-status" id="autoSyncStatusBadge">
+              <span class="auto-sync-pulse"></span> <span id="autoSyncStatusText">Auto-sync OpenAlex Activo</span>
+            </div>
+          </div>
+          <p>Indexado oficial desde OpenAlex, Crossref y Descubridor Tayrona sobre Baterías de Ion de Litio, Segunda Vida, BMS, SoH y SoC.</p>
         </div>
         <div class="papers-export-btns">
           <button type="button" class="btn-export-academic" id="btnDownloadBibtex" title="Descargar referencias en BibTeX">
@@ -206,6 +211,31 @@
           </button>
           <button type="button" class="btn-export-academic" id="btnDownloadMarkdown" title="Descargar reporte en Markdown">
             <span>📄</span> Descargar .md (Markdown)
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjeta Conector: Descubridor Tayrona (Unimagdalena) -->
+      <div class="tayrona-connector-card">
+        <div class="tayrona-title-row">
+          <h3>🏛️ Descubridor Tayrona — Universidad del Magdalena</h3>
+          <span class="tayrona-badge">Santa Marta, Colombia</span>
+        </div>
+        <p class="tayrona-desc">
+          Conexión especializada con el catálogo de la <strong>Biblioteca Germán Bula Meyer</strong> y el <strong>Repositorio Institucional de Tesis (DSpace / OAI-PMH)</strong>. Accede a trabajos de grado locales de Ingeniería Electrónica y bases suscritas en el Caribe colombiano.
+        </p>
+        <div class="tayrona-actions">
+          <a href="https://descubridor.unimagdalena.edu.co/primo-explore/search?query=any,contains,baterias%20de%20litio&tab=default_tab&search_scope=default_scope&vid=UNIMAGDALENA" target="_blank" rel="noopener noreferrer" class="btn-tayrona-query" title="Buscar 'Baterías de Litio' en Descubridor Tayrona">
+            <span>🔍</span> Tesis: Baterías de Litio
+          </a>
+          <a href="https://descubridor.unimagdalena.edu.co/primo-explore/search?query=any,contains,BMS%20baterias&tab=default_tab&search_scope=default_scope&vid=UNIMAGDALENA" target="_blank" rel="noopener noreferrer" class="btn-tayrona-query" title="Buscar 'BMS Baterías' en Descubridor Tayrona">
+            <span>🛡️</span> Tesis: BMS & Gestión
+          </a>
+          <a href="https://repositorio.unimagdalena.edu.co/handle/123456789/2" target="_blank" rel="noopener noreferrer" class="btn-tayrona-query" title="Facultad de Ingeniería Unimagdalena">
+            <span>⚡</span> Repositorio Fac. Ingeniería
+          </a>
+          <button type="button" class="btn-tayrona-query" id="btnFilterUnimagdalenaPapers" title="Consultar OpenAlex con foco Santa Marta / Colombia">
+            <span>🇨🇴</span> Autores Santa Marta / Colombia
           </button>
         </div>
       </div>
@@ -228,6 +258,16 @@
         <button class="paper-topic-pill" data-topic="SoC (Carga)">📊 SoC (Carga)</button>
         <button class="paper-topic-pill" data-topic="Carga Rápida">⚡ Carga Rápida & Ciclos</button>
         <button class="paper-topic-pill" data-topic="Colombia / LatAm">🇨🇴 Colombia / LatAm</button>
+      </div>
+
+      <!-- Barra de Filtros por Semáforo (PRISMA Screening) -->
+      <div class="traffic-filters-bar" id="trafficFiltersBar">
+        <span class="traffic-label" style="margin-right: 4px;">Filtro Semáforo:</span>
+        <button class="traffic-filter-btn active" data-rating-filter="all">⚡ Todos (<span id="countRatingAll">0</span>)</button>
+        <button class="traffic-filter-btn green" data-rating-filter="green">🟢 Relevantes / Aprobados (<span id="countRatingGreen">0</span>)</button>
+        <button class="traffic-filter-btn yellow" data-rating-filter="yellow">🟡 En Revisión (<span id="countRatingYellow">0</span>)</button>
+        <button class="traffic-filter-btn red" data-rating-filter="red">🔴 Descartados (<span id="countRatingRed">0</span>)</button>
+        <button class="traffic-filter-btn" data-rating-filter="none">⚪ Sin Clasificar (<span id="countRatingNone">0</span>)</button>
       </div>
 
       <!-- Contenedor dinámico de papers -->

@@ -352,6 +352,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    const linkRatings = state.linkRatings || {};
+
     dom.linksContainer.innerHTML = links.map(item => {
       let hostname = '';
       try {
@@ -359,13 +361,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch (e) {
         hostname = 'Enlace';
       }
+      const linkKey = 'lnk_' + hashString((item.url || '').toLowerCase().trim());
+      const currentRating = linkRatings[linkKey] || '';
 
       return `
-        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="link-item-card" title="${item.url}">
-          <span class="link-domain">${hostname}</span>
-          <span class="link-url">${item.url}</span>
-          <span class="link-author-ref">De: ${escapeHtml(item.postTitle || 'Avance')} (${escapeHtml(getAuthorName(item.author))})</span>
-        </a>
+        <div class="link-item-row ${currentRating ? 'rated-' + currentRating : ''}">
+          <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="link-item-content" title="${item.url}">
+            <span class="link-domain">${hostname}</span>
+            <span class="link-url">${item.url}</span>
+            <span class="link-author-ref">De: ${escapeHtml(item.postTitle || 'Avance')} (${escapeHtml(getAuthorName(item.author))})</span>
+          </a>
+          <div class="traffic-light-compact" title="Clasificar enlace">
+            <button type="button" class="traffic-dot-sm dot-green ${currentRating === 'green' ? 'selected' : ''}" onclick="window.setLinkTrafficRating('${linkKey}', 'green')" title="🟢 Relevante / Aprobado"></button>
+            <button type="button" class="traffic-dot-sm dot-yellow ${currentRating === 'yellow' ? 'selected' : ''}" onclick="window.setLinkTrafficRating('${linkKey}', 'yellow')" title="🟡 En revisión / Duda"></button>
+            <button type="button" class="traffic-dot-sm dot-red ${currentRating === 'red' ? 'selected' : ''}" onclick="window.setLinkTrafficRating('${linkKey}', 'red')" title="🔴 Descartado"></button>
+          </div>
+        </div>
       `;
     }).join('');
   }
@@ -716,7 +727,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   state.papers = (typeof FOROMAGMA_PAPERS_DB !== 'undefined' && Array.isArray(FOROMAGMA_PAPERS_DB))
     ? [...FOROMAGMA_PAPERS_DB]
     : [];
+  state.paperRatings = StorageManager.getLocalPaperRatings();
+  state.linkRatings = StorageManager.getLocalLinkRatings();
   state.activePaperTopic = 'all';
+  state.activeRatingFilter = 'all';
   state.paperSearchQuery = '';
 
   const papersContainer = document.getElementById('papersContainer');
@@ -726,10 +740,41 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnQueryOpenAlexLive = document.getElementById('btnQueryOpenAlexLive');
   const btnDownloadBibtex = document.getElementById('btnDownloadBibtex');
   const btnDownloadMarkdown = document.getElementById('btnDownloadMarkdown');
+  const trafficFiltersBar = document.getElementById('trafficFiltersBar');
+  const btnFilterUnimagdalenaPapers = document.getElementById('btnFilterUnimagdalenaPapers');
+
+  // Elementos contadores de semáforo
+  const countRatingAllEl = document.getElementById('countRatingAll');
+  const countRatingGreenEl = document.getElementById('countRatingGreen');
+  const countRatingYellowEl = document.getElementById('countRatingYellow');
+  const countRatingRedEl = document.getElementById('countRatingRed');
+  const countRatingNoneEl = document.getElementById('countRatingNone');
 
   if (countAllPapersEl) {
     countAllPapersEl.textContent = state.papers.length;
   }
+
+  function getPaperKey(p) {
+    if (p.doi) {
+      return 'doi_' + p.doi.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    }
+    return 'title_' + hashString((p.title || '').toLowerCase().trim());
+  }
+
+  // Funciones globales para clasificar enlaces y papers con semáforo
+  window.setLinkTrafficRating = async function(linkKey, color) {
+    const updated = await StorageManager.saveLinkRating(linkKey, color);
+    state.linkRatings = updated;
+    renderLinksSidebar();
+    flashSyncIndicator();
+  };
+
+  window.setPaperTrafficRating = async function(paperKey, color) {
+    const updated = await StorageManager.savePaperRating(paperKey, color);
+    state.paperRatings = updated;
+    renderPapersList();
+    flashSyncIndicator();
+  };
 
   // Filtrado por categoría de tesis
   if (paperTopicPills) {
@@ -740,6 +785,34 @@ document.addEventListener('DOMContentLoaded', async () => {
       pill.classList.add('active');
       state.activePaperTopic = pill.dataset.topic;
       renderPapersList();
+    });
+  }
+
+  // Filtrado por Semáforo / PRISMA (Verde, Amarillo, Rojo, Sin Clasificar)
+  if (trafficFiltersBar) {
+    trafficFiltersBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.traffic-filter-btn');
+      if (!btn) return;
+      document.querySelectorAll('.traffic-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.activeRatingFilter = btn.dataset.ratingFilter || 'all';
+      renderPapersList();
+    });
+  }
+
+  // Conector Descubridor Tayrona: Foco Santa Marta / Colombia
+  if (btnFilterUnimagdalenaPapers) {
+    btnFilterUnimagdalenaPapers.addEventListener('click', () => {
+      if (paperLiveSearchInput) {
+        paperLiveSearchInput.value = 'Colombia';
+        state.paperSearchQuery = 'colombia';
+      }
+      state.activePaperTopic = 'Colombia / LatAm';
+      document.querySelectorAll('.paper-topic-pill').forEach(p => {
+        p.classList.toggle('active', p.dataset.topic === 'Colombia / LatAm');
+      });
+      renderPapersList();
+      showToast('🇨🇴 Mostrando literatura con autores y contexto de Colombia / Santa Marta');
     });
   }
 
@@ -795,7 +868,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Detectar ámbito
             const corpus = (title + ' ' + abstractText + ' ' + source).toLowerCase();
             let scope = '🌐 Internacional';
-            if (corpus.includes('colombia') || corpus.includes('santa marta') || corpus.includes('unal') || corpus.includes('uis')) {
+            if (corpus.includes('colombia') || corpus.includes('santa marta') || corpus.includes('unal') || corpus.includes('uis') || corpus.includes('unimagdalena')) {
               scope = '🇨🇴 Colombia / Local';
             } else if (corpus.includes('latin america') || corpus.includes('latinoamerica') || corpus.includes('chile') || corpus.includes('mexico')) {
               scope = '🌎 Latinoamérica';
@@ -833,13 +906,126 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // ==========================================================
+  // AUTO-SYNC EN SEGUNDO PLANO CADA VEZ QUE SE ENTRA A LA PÁGINA
+  // ==========================================================
+  async function autoSyncOpenAlex() {
+    const statusText = document.getElementById('autoSyncStatusText');
+    if (statusText) statusText.textContent = 'Buscando novedades en OpenAlex...';
+
+    try {
+      // Consulta polite pool con temas prioritarios de tesis
+      const queryTerms = 'second life lithium ion battery BMS SoH SoC fast charging';
+      const url = `https://api.openalex.org/works?search=${encodeURIComponent(queryTerms)}&per_page=20&sort=publication_year:desc&mailto=ivanmezaf@users.noreply.github.com`;
+      const resp = await fetch(url);
+      if (!resp.ok) return;
+
+      const data = await resp.json();
+      const results = data.results || [];
+      let newCount = 0;
+
+      results.forEach(item => {
+        const title = (item.title || '').trim();
+        if (!title) return;
+        const doi = item.doi || '';
+
+        const exists = state.papers.some(p =>
+          (doi && p.doi && p.doi.toLowerCase() === doi.toLowerCase()) ||
+          (p.title && p.title.toLowerCase().trim() === title.toLowerCase().trim())
+        );
+
+        if (!exists) {
+          let abstractText = '';
+          if (item.abstract_inverted_index) {
+            const posWord = [];
+            for (const [w, positions] of Object.entries(item.abstract_inverted_index)) {
+              positions.forEach(pos => posWord.push({ pos, word: w }));
+            }
+            posWord.sort((a, b) => a.pos - b.pos);
+            abstractText = posWord.map(x => x.word).join(' ');
+          }
+
+          const authors = (item.authorships || []).map(a => a.author ? a.author.display_name : '').filter(Boolean);
+          const oa = item.open_access || {};
+          const source = item.primary_location && item.primary_location.source ? item.primary_location.source.display_name : 'Revista Científica';
+
+          const corpus = (title + ' ' + abstractText + ' ' + source).toLowerCase();
+          let scope = '🌐 Internacional';
+          if (corpus.includes('colombia') || corpus.includes('santa marta') || corpus.includes('unal') || corpus.includes('uis') || corpus.includes('unimagdalena')) {
+            scope = '🇨🇴 Colombia / Local';
+          } else if (corpus.includes('latin america') || corpus.includes('latinoamerica') || corpus.includes('chile') || corpus.includes('mexico')) {
+            scope = '🌎 Latinoamérica';
+          }
+
+          let cat = 'Segunda Vida';
+          if (corpus.includes('soh') || corpus.includes('state of health') || corpus.includes('salud')) cat = 'SoH (Salud)';
+          else if (corpus.includes('soc') || corpus.includes('state of charge')) cat = 'SoC (Carga)';
+          else if (corpus.includes('bms') || corpus.includes('battery management')) cat = 'BMS Segunda Vida';
+          else if (corpus.includes('fast charge') || corpus.includes('carga rápida')) cat = 'Carga Rápida';
+
+          state.papers.unshift({
+            source_api: 'OpenAlex (Auto-sync)',
+            title: title,
+            authors: authors.slice(0, 5),
+            year: item.publication_year || new Date().getFullYear(),
+            doi: doi,
+            journal: source,
+            citations: item.cited_by_count || 0,
+            url: doi || item.id || '#',
+            open_access_pdf: oa.oa_url || '',
+            abstract: abstractText ? abstractText.substring(0, 650) + '...' : 'Resumen disponible en el enlace oficial.',
+            is_oa: oa.is_oa || false,
+            scope: scope,
+            thesis_category: cat
+          });
+          newCount++;
+        }
+      });
+
+      if (countAllPapersEl) countAllPapersEl.textContent = state.papers.length;
+      renderPapersList();
+
+      if (statusText) {
+        statusText.textContent = newCount > 0 ? `Sincronizado: +${newCount} nuevos` : 'OpenAlex Sincronizado';
+      }
+    } catch (e) {
+      console.warn('Auto-sync en segundo plano finalizado:', e);
+      if (statusText) statusText.textContent = 'OpenAlex Activo';
+    }
+  }
+
   // Renderizar la lista de artículos
   function renderPapersList() {
     if (!papersContainer) return;
 
+    const paperRatings = state.paperRatings || {};
+
+    // 1. Calcular contadores de Semáforo / PRISMA
+    let countAll = 0;
+    let countGreen = 0;
+    let countYellow = 0;
+    let countRed = 0;
+    let countNone = 0;
+
+    state.papers.forEach(p => {
+      const key = getPaperKey(p);
+      const r = paperRatings[key];
+      countAll++;
+      if (r === 'green') countGreen++;
+      else if (r === 'yellow') countYellow++;
+      else if (r === 'red') countRed++;
+      else countNone++;
+    });
+
+    if (countRatingAllEl) countRatingAllEl.textContent = countAll;
+    if (countRatingGreenEl) countRatingGreenEl.textContent = countGreen;
+    if (countRatingYellowEl) countRatingYellowEl.textContent = countYellow;
+    if (countRatingRedEl) countRatingRedEl.textContent = countRed;
+    if (countRatingNoneEl) countRatingNoneEl.textContent = countNone;
+
     let filtered = [...state.papers];
 
-    // Filtro por tema
+    // 2. Filtro por tema
     if (state.activePaperTopic !== 'all') {
       if (state.activePaperTopic === 'Colombia / LatAm') {
         filtered = filtered.filter(p => (p.scope && (p.scope.includes('Colombia') || p.scope.includes('Latinoamérica'))));
@@ -848,7 +1034,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    // Filtro por texto
+    // 3. Filtro por semáforo
+    if (state.activeRatingFilter !== 'all') {
+      filtered = filtered.filter(p => {
+        const key = getPaperKey(p);
+        const r = paperRatings[key] || '';
+        if (state.activeRatingFilter === 'none') return !r;
+        return r === state.activeRatingFilter;
+      });
+    }
+
+    // 4. Filtro por texto
     if (state.paperSearchQuery.trim()) {
       const q = state.paperSearchQuery.toLowerCase();
       filtered = filtered.filter(p =>
@@ -863,9 +1059,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (filtered.length === 0) {
       papersContainer.innerHTML = `
         <div class="box-panel" style="text-align: center; padding: 40px 20px;">
-          <h3 style="font-family: var(--font-serif); font-size: 1.25rem; margin-bottom: 6px;">No se encontraron artículos</h3>
+          <h3 style="font-family: var(--font-serif); font-size: 1.25rem; margin-bottom: 6px;">No se encontraron artículos con los filtros actuales</h3>
           <p style="font-size: 0.86rem; color: var(--ink-soft); max-width: 440px; margin: 0 auto 16px;">
-            Intenta con otro término de búsqueda o presiona el botón "Consultar OpenAlex en Vivo".
+            Intenta cambiando el filtro de semáforo, el tema de tesis o presiona "Consultar OpenAlex en Vivo".
           </p>
         </div>
       `;
@@ -880,15 +1076,35 @@ document.addEventListener('DOMContentLoaded', async () => {
       const authorsStr = (p.authors && p.authors.length > 0) ? p.authors.join(', ') : 'Autores no especificados';
       const safeDoi = p.doi ? (p.doi.startsWith('http') ? p.doi : `https://doi.org/${p.doi}`) : (p.url || '#');
 
+      const paperKey = getPaperKey(p);
+      const currentRating = paperRatings[paperKey] || '';
+
+      let ratingBadgeHtml = '';
+      if (currentRating === 'green') {
+        ratingBadgeHtml = `<span class="badge-rating green">🟢 Aprobado / Incluido</span>`;
+      } else if (currentRating === 'yellow') {
+        ratingBadgeHtml = `<span class="badge-rating yellow">🟡 En Revisión</span>`;
+      } else if (currentRating === 'red') {
+        ratingBadgeHtml = `<span class="badge-rating red">🔴 Descartado</span>`;
+      }
+
       return `
-        <article class="paper-card">
+        <article class="paper-card ${currentRating ? 'rated-' + currentRating : ''}">
           <div class="paper-top-meta">
             <div class="paper-badges-left">
               <span class="badge-scope ${scopeClass}">${p.scope || '🌐 Internacional'}</span>
               ${p.thesis_category ? `<span class="person">${escapeHtml(p.thesis_category)}</span>` : ''}
               <span class="badge-citations">Citas: ${p.citations || 0}</span>
+              ${ratingBadgeHtml}
             </div>
-            <span style="color:var(--ink-soft); font-size:0.75rem;">Fuente: ${p.source_api || 'API Oficial'}</span>
+
+            <!-- Semáforo de Clasificación Rápida a la derecha -->
+            <div class="traffic-light-box" title="Semáforo de relevancia para la tesis">
+              <span class="traffic-label">Semáforo:</span>
+              <button type="button" class="traffic-dot dot-green ${currentRating === 'green' ? 'selected' : ''}" onclick="window.setPaperTrafficRating('${paperKey}', 'green')" title="🟢 Verde: Relevante / Aprobado (Incluir en tesis)"></button>
+              <button type="button" class="traffic-dot dot-yellow ${currentRating === 'yellow' ? 'selected' : ''}" onclick="window.setPaperTrafficRating('${paperKey}', 'yellow')" title="🟡 Amarillo: En revisión / Duda metodológica"></button>
+              <button type="button" class="traffic-dot dot-red ${currentRating === 'red' ? 'selected' : ''}" onclick="window.setPaperTrafficRating('${paperKey}', 'red')" title="🔴 Rojo: Descartado / Fuera de alcance"></button>
+            </div>
           </div>
 
           <h3 class="paper-title">${escapeHtml(p.title)}</h3>
@@ -901,6 +1117,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             <span><strong>Publicado:</strong> ${p.year || 'N/D'}</span>
             <span>•</span>
             <span><strong>Revista:</strong> ${escapeHtml(p.journal || 'Publicación Científica')}</span>
+            <span>•</span>
+            <span style="color:var(--ink-soft); font-size:0.75rem;">Fuente: ${p.source_api || 'API Oficial'}</span>
           </div>
 
           ${p.abstract ? `
@@ -1031,21 +1249,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Render inicial de papers
   renderPapersList();
 
+  // Auto-activación de búsqueda y sincronización académica al entrar a la página
+  autoSyncOpenAlex();
+
   // ==========================================================
   // INICIALIZACIÓN CON FIREBASE EN TIEMPO REAL
   // ==========================================================
   await StorageManager.init(
-    // Callback cuando se actualiza el Foro
+    // 1. Callback cuando se actualiza el Foro
     (livePosts) => {
       state.posts = livePosts;
       renderPosts();
       renderLinksSidebar();
       flashSyncIndicator();
     },
-    // Callback cuando se actualiza el Tablero Kanban
+    // 2. Callback cuando se actualiza el Tablero Kanban
     (liveCards) => {
       state.kanbanCards = liveCards;
       renderKanbanBoard();
+      flashSyncIndicator();
+    },
+    // 3. Callback cuando se actualiza el Semáforo de Clasificación (Verde/Amarillo/Rojo)
+    (livePaperRatings, liveLinkRatings) => {
+      state.paperRatings = livePaperRatings || {};
+      state.linkRatings = liveLinkRatings || {};
+      renderPapersList();
+      renderLinksSidebar();
       flashSyncIndicator();
     }
   );
