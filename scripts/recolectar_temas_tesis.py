@@ -50,8 +50,8 @@ def main():
     unique_papers = deduplicate_papers(all_papers)
     print(f"\n[OK] Total de articulos unicos recolectados: {len(unique_papers)}")
 
-    # Ordenar por citas descendente, dando prioridad a los locales/regionales
-    unique_papers.sort(key=lambda p: (1 if "Colombia" in p.get("scope", "") else 0, p.get("citations", 0)), reverse=True)
+    # Ordenar de más actual a más antiguo (año descendente; si empatan, por citas)
+    unique_papers.sort(key=lambda p: (int(p.get("year") or 0), p.get("citations", 0)), reverse=True)
 
     # Exportar
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

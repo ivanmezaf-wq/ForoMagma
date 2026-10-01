@@ -727,6 +727,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   state.papers = (typeof FOROMAGMA_PAPERS_DB !== 'undefined' && Array.isArray(FOROMAGMA_PAPERS_DB))
     ? [...FOROMAGMA_PAPERS_DB]
     : [];
+
+  // Ordenar inicialmente de más actual (2026) a más antiguo (2010)
+  state.papers.sort((a, b) => {
+    const yearA = parseInt(a.year, 10) || 0;
+    const yearB = parseInt(b.year, 10) || 0;
+    if (yearB !== yearA) return yearB - yearA;
+    return (b.citations || 0) - (a.citations || 0);
+  });
+
   state.paperRatings = StorageManager.getLocalPaperRatings();
   state.linkRatings = StorageManager.getLocalLinkRatings();
   state.activePaperTopic = 'all';
@@ -1055,6 +1064,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         (p.authors || []).some(a => a.toLowerCase().includes(q))
       );
     }
+
+    // 5. Ordenar de más actual (2026) a más antiguo (2010), y por citas si empatan
+    filtered.sort((a, b) => {
+      const yearA = parseInt(a.year, 10) || 0;
+      const yearB = parseInt(b.year, 10) || 0;
+      if (yearB !== yearA) return yearB - yearA;
+      return (b.citations || 0) - (a.citations || 0);
+    });
 
     if (filtered.length === 0) {
       papersContainer.innerHTML = `
