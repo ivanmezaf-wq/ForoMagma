@@ -824,17 +824,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Consulta en Vivo a la API oficial de OpenAlex
+  // Consulta en Vivo a la API oficial de OpenAlex (Intervalo 2010 - 2026)
   if (btnQueryOpenAlexLive) {
     btnQueryOpenAlexLive.addEventListener('click', async () => {
       const query = paperLiveSearchInput ? paperLiveSearchInput.value.trim() : '';
       const finalQuery = query || 'second life lithium ion battery BMS SoH estimation Colombia';
 
       btnQueryOpenAlexLive.disabled = true;
-      btnQueryOpenAlexLive.innerHTML = '<span>⏳</span> Consultando OpenAlex API...';
+      btnQueryOpenAlexLive.innerHTML = '<span>⏳</span> Consultando OpenAlex API (2010-2026)...';
 
       try {
-        const url = `https://api.openalex.org/works?search=${encodeURIComponent(finalQuery)}&per_page=15&sort=cited_by_count:desc&mailto=ivanmezaf@users.noreply.github.com`;
+        const url = `https://api.openalex.org/works?search=${encodeURIComponent(finalQuery)}&filter=publication_year:2010-2026&per_page=20&sort=cited_by_count:desc&mailto=ivanmezaf@users.noreply.github.com`;
         const resp = await fetch(url);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
@@ -875,7 +875,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             state.papers.unshift({
-              source_api: 'OpenAlex (En vivo)',
+              source_api: 'OpenAlex (En vivo 2010-2026)',
               title: title,
               authors: authors.slice(0, 5),
               year: item.publication_year || new Date().getFullYear(),
@@ -895,7 +895,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (countAllPapersEl) countAllPapersEl.textContent = state.papers.length;
         renderPapersList();
-        showToast(`OpenAlex API: ${newCount} nuevos artículos agregados`);
+        showToast(`OpenAlex API: ${newCount} nuevos artículos agregados (2010-2026)`);
       } catch (err) {
         console.error(err);
         showToast('Error al consultar OpenAlex: ' + err.message);
@@ -907,16 +907,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ==========================================================
-  // AUTO-SYNC EN SEGUNDO PLANO CADA VEZ QUE SE ENTRA A LA PÁGINA
+  // AUTO-SYNC EN SEGUNDO PLANO CADA VEZ QUE SE ENTRA A LA PÁGINA (2010-2026)
   // ==========================================================
   async function autoSyncOpenAlex() {
     const statusText = document.getElementById('autoSyncStatusText');
-    if (statusText) statusText.textContent = 'Buscando novedades en OpenAlex...';
+    if (statusText) statusText.textContent = 'Buscando novedades en OpenAlex (2010-2026)...';
 
     try {
-      // Consulta polite pool con temas prioritarios de tesis
+      // Consulta polite pool con filtro ampliado a 2010-2026
       const queryTerms = 'second life lithium ion battery BMS SoH SoC fast charging';
-      const url = `https://api.openalex.org/works?search=${encodeURIComponent(queryTerms)}&per_page=20&sort=publication_year:desc&mailto=ivanmezaf@users.noreply.github.com`;
+      const url = `https://api.openalex.org/works?search=${encodeURIComponent(queryTerms)}&filter=publication_year:2010-2026&per_page=25&sort=publication_year:desc&mailto=ivanmezaf@users.noreply.github.com`;
       const resp = await fetch(url);
       if (!resp.ok) return;
 

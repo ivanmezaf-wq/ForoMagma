@@ -40,7 +40,7 @@ def main():
 
     for category, query in TOPICS_MAP.items():
         print(f"\n---> Consultando categoria: [{category}] (query: {query})")
-        results = search_all_sources(query, limit_per_source=8, from_year=2020)
+        results = search_all_sources(query, limit_per_source=8, from_year=2010)
         for r in results:
             r["thesis_category"] = category
         all_papers.extend(results)
