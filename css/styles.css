@@ -1127,3 +1127,308 @@ table.matrix td.corner {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================
+   REPOSITORIO ACADÉMICO & APIS (BATERÍAS DE ION DE LITIO)
+   ========================================================== */
+.papers-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.papers-title-group h2 {
+  font-family: var(--font-serif);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.papers-title-group p {
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+}
+
+.papers-export-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-export-academic {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-export-academic:hover {
+  background: var(--sand-deep);
+  border-color: var(--ink);
+}
+
+.papers-live-search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.papers-live-input {
+  flex: 1;
+  min-width: 260px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card-bg);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+.btn-api-query {
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-theme="dark"] .btn-api-query {
+  background: var(--teal);
+  color: #0a191c;
+}
+
+.btn-api-query:hover {
+  background: var(--teal-deep);
+  color: #fff;
+}
+
+.papers-pills-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.paper-topic-pill {
+  border: 1px solid var(--line);
+  background: var(--card-bg);
+  color: var(--ink-soft);
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.paper-topic-pill:hover {
+  background: var(--sand);
+  color: var(--ink);
+}
+
+.paper-topic-pill.active {
+  background: var(--sand-deep);
+  color: var(--ink);
+  border-color: var(--ink);
+  font-weight: 700;
+}
+
+.papers-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.paper-card {
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--doc);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: var(--transition);
+}
+
+.paper-card:hover {
+  box-shadow: 0 3px 8px rgba(14, 46, 51, 0.08);
+  border-color: var(--line);
+  border-left-color: var(--ink);
+}
+
+.paper-top-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.76rem;
+}
+
+.paper-badges-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.badge-scope {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.72rem;
+  border: 1px solid var(--line);
+}
+
+.badge-scope.colombia {
+  background: #fef08a;
+  color: #854d0e;
+  border-color: #fde047;
+}
+
+[data-theme="dark"] .badge-scope.colombia {
+  background: #713f12;
+  color: #fef08a;
+  border-color: #854d0e;
+}
+
+.badge-scope.latam {
+  background: var(--sand-deep);
+  color: var(--ink);
+}
+
+.badge-scope.global {
+  background: var(--sand);
+  color: var(--ink-soft);
+}
+
+.badge-citations {
+  background: var(--sand);
+  color: var(--ink);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.72rem;
+  border: 1px solid var(--line);
+}
+
+.paper-title {
+  font-family: var(--font-serif);
+  font-size: 1.22rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.paper-authors {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+
+.paper-journal-row {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.paper-journal-row b {
+  color: var(--ink);
+}
+
+.paper-abstract-box {
+  background: var(--sand);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.84rem;
+  color: var(--ink);
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+.paper-abstract-toggle {
+  background: none;
+  border: none;
+  color: var(--teal);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  display: inline-block;
+  margin-top: 2px;
+}
+
+.paper-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.btn-paper-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--card-bg);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.btn-paper-link:hover {
+  background: var(--sand-deep);
+  border-color: var(--ink);
+}
+
+.btn-paper-oa {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+[data-theme="dark"] .btn-paper-oa {
+  background: #064e3b;
+  color: #a7f3d0;
+  border-color: #047857;
+}
+
+.btn-paper-oa:hover {
+  background: #d1fae5;
+}
+

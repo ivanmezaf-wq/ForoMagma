@@ -711,6 +711,327 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // ==========================================================
+  // REPOSITORIO ACADÉMICO & APIS (BATERÍAS DE ION DE LITIO)
+  // ==========================================================
+  state.papers = (typeof FOROMAGMA_PAPERS_DB !== 'undefined' && Array.isArray(FOROMAGMA_PAPERS_DB))
+    ? [...FOROMAGMA_PAPERS_DB]
+    : [];
+  state.activePaperTopic = 'all';
+  state.paperSearchQuery = '';
+
+  const papersContainer = document.getElementById('papersContainer');
+  const countAllPapersEl = document.getElementById('countAllPapers');
+  const paperTopicPills = document.getElementById('paperTopicPills');
+  const paperLiveSearchInput = document.getElementById('paperLiveSearchInput');
+  const btnQueryOpenAlexLive = document.getElementById('btnQueryOpenAlexLive');
+  const btnDownloadBibtex = document.getElementById('btnDownloadBibtex');
+  const btnDownloadMarkdown = document.getElementById('btnDownloadMarkdown');
+
+  if (countAllPapersEl) {
+    countAllPapersEl.textContent = state.papers.length;
+  }
+
+  // Filtrado por categoría de tesis
+  if (paperTopicPills) {
+    paperTopicPills.addEventListener('click', (e) => {
+      const pill = e.target.closest('.paper-topic-pill');
+      if (!pill) return;
+      document.querySelectorAll('.paper-topic-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      state.activePaperTopic = pill.dataset.topic;
+      renderPapersList();
+    });
+  }
+
+  // Búsqueda en vivo local
+  if (paperLiveSearchInput) {
+    paperLiveSearchInput.addEventListener('input', (e) => {
+      state.paperSearchQuery = e.target.value;
+      renderPapersList();
+    });
+  }
+
+  // Consulta en Vivo a la API oficial de OpenAlex
+  if (btnQueryOpenAlexLive) {
+    btnQueryOpenAlexLive.addEventListener('click', async () => {
+      const query = paperLiveSearchInput ? paperLiveSearchInput.value.trim() : '';
+      const finalQuery = query || 'second life lithium ion battery BMS SoH estimation Colombia';
+
+      btnQueryOpenAlexLive.disabled = true;
+      btnQueryOpenAlexLive.innerHTML = '<span>⏳</span> Consultando OpenAlex API...';
+
+      try {
+        const url = `https://api.openalex.org/works?search=${encodeURIComponent(finalQuery)}&per_page=15&sort=cited_by_count:desc&mailto=ivanmezaf@users.noreply.github.com`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+        const data = await resp.json();
+        const results = data.results || [];
+        let newCount = 0;
+
+        results.forEach(item => {
+          const title = (item.title || '').trim();
+          if (!title) return;
+          const doi = item.doi || '';
+
+          // Verificar si ya existe
+          const exists = state.papers.some(p => (doi && p.doi && p.doi.toLowerCase() === doi.toLowerCase()) || (p.title && p.title.toLowerCase() === title.toLowerCase()));
+          if (!exists) {
+            // Reconstruir abstract
+            let abstractText = '';
+            if (item.abstract_inverted_index) {
+              const posWord = [];
+              for (const [w, positions] of Object.entries(item.abstract_inverted_index)) {
+                positions.forEach(pos => posWord.push({ pos, word: w }));
+              }
+              posWord.sort((a, b) => a.pos - b.pos);
+              abstractText = posWord.map(x => x.word).join(' ');
+            }
+
+            const authors = (item.authorships || []).map(a => a.author ? a.author.display_name : '').filter(Boolean);
+            const oa = item.open_access || {};
+            const source = item.primary_location && item.primary_location.source ? item.primary_location.source.display_name : 'Revista Científica';
+
+            // Detectar ámbito
+            const corpus = (title + ' ' + abstractText + ' ' + source).toLowerCase();
+            let scope = '🌐 Internacional';
+            if (corpus.includes('colombia') || corpus.includes('santa marta') || corpus.includes('unal') || corpus.includes('uis')) {
+              scope = '🇨🇴 Colombia / Local';
+            } else if (corpus.includes('latin america') || corpus.includes('latinoamerica') || corpus.includes('chile') || corpus.includes('mexico')) {
+              scope = '🌎 Latinoamérica';
+            }
+
+            state.papers.unshift({
+              source_api: 'OpenAlex (En vivo)',
+              title: title,
+              authors: authors.slice(0, 5),
+              year: item.publication_year || new Date().getFullYear(),
+              doi: doi,
+              journal: source,
+              citations: item.cited_by_count || 0,
+              url: doi || item.id || '#',
+              open_access_pdf: oa.oa_url || '',
+              abstract: abstractText ? abstractText.substring(0, 650) + '...' : 'Resumen disponible en el enlace oficial.',
+              is_oa: oa.is_oa || false,
+              scope: scope,
+              thesis_category: 'Consultas API'
+            });
+            newCount++;
+          }
+        });
+
+        if (countAllPapersEl) countAllPapersEl.textContent = state.papers.length;
+        renderPapersList();
+        showToast(`OpenAlex API: ${newCount} nuevos artículos agregados`);
+      } catch (err) {
+        console.error(err);
+        showToast('Error al consultar OpenAlex: ' + err.message);
+      } finally {
+        btnQueryOpenAlexLive.disabled = false;
+        btnQueryOpenAlexLive.innerHTML = '<span>⚡</span> Consultar OpenAlex en Vivo';
+      }
+    });
+  }
+
+  // Renderizar la lista de artículos
+  function renderPapersList() {
+    if (!papersContainer) return;
+
+    let filtered = [...state.papers];
+
+    // Filtro por tema
+    if (state.activePaperTopic !== 'all') {
+      if (state.activePaperTopic === 'Colombia / LatAm') {
+        filtered = filtered.filter(p => (p.scope && (p.scope.includes('Colombia') || p.scope.includes('Latinoamérica'))));
+      } else {
+        filtered = filtered.filter(p => p.thesis_category === state.activePaperTopic);
+      }
+    }
+
+    // Filtro por texto
+    if (state.paperSearchQuery.trim()) {
+      const q = state.paperSearchQuery.toLowerCase();
+      filtered = filtered.filter(p =>
+        (p.title || '').toLowerCase().includes(q) ||
+        (p.abstract || '').toLowerCase().includes(q) ||
+        (p.doi || '').toLowerCase().includes(q) ||
+        (p.journal || '').toLowerCase().includes(q) ||
+        (p.authors || []).some(a => a.toLowerCase().includes(q))
+      );
+    }
+
+    if (filtered.length === 0) {
+      papersContainer.innerHTML = `
+        <div class="box-panel" style="text-align: center; padding: 40px 20px;">
+          <h3 style="font-family: var(--font-serif); font-size: 1.25rem; margin-bottom: 6px;">No se encontraron artículos</h3>
+          <p style="font-size: 0.86rem; color: var(--ink-soft); max-width: 440px; margin: 0 auto 16px;">
+            Intenta con otro término de búsqueda o presiona el botón "Consultar OpenAlex en Vivo".
+          </p>
+        </div>
+      `;
+      return;
+    }
+
+    papersContainer.innerHTML = filtered.map((p, idx) => {
+      let scopeClass = 'global';
+      if (p.scope && p.scope.includes('Colombia')) scopeClass = 'colombia';
+      else if (p.scope && p.scope.includes('Latinoamérica')) scopeClass = 'latam';
+
+      const authorsStr = (p.authors && p.authors.length > 0) ? p.authors.join(', ') : 'Autores no especificados';
+      const safeDoi = p.doi ? (p.doi.startsWith('http') ? p.doi : `https://doi.org/${p.doi}`) : (p.url || '#');
+
+      return `
+        <article class="paper-card">
+          <div class="paper-top-meta">
+            <div class="paper-badges-left">
+              <span class="badge-scope ${scopeClass}">${p.scope || '🌐 Internacional'}</span>
+              ${p.thesis_category ? `<span class="person">${escapeHtml(p.thesis_category)}</span>` : ''}
+              <span class="badge-citations">Citas: ${p.citations || 0}</span>
+            </div>
+            <span style="color:var(--ink-soft); font-size:0.75rem;">Fuente: ${p.source_api || 'API Oficial'}</span>
+          </div>
+
+          <h3 class="paper-title">${escapeHtml(p.title)}</h3>
+
+          <div class="paper-authors">
+            <strong>Autores:</strong> ${escapeHtml(authorsStr)}
+          </div>
+
+          <div class="paper-journal-row">
+            <span><strong>Publicado:</strong> ${p.year || 'N/D'}</span>
+            <span>•</span>
+            <span><strong>Revista:</strong> ${escapeHtml(p.journal || 'Publicación Científica')}</span>
+          </div>
+
+          ${p.abstract ? `
+            <div class="paper-abstract-box" id="abstract-box-${idx}">
+              <div style="font-weight:700; font-size:0.78rem; text-transform:uppercase; margin-bottom:4px; color:var(--ink-soft);">Resumen / Abstract:</div>
+              <div>${escapeHtml(p.abstract)}</div>
+            </div>
+          ` : ''}
+
+          <div class="paper-actions-row">
+            <a href="${safeDoi}" target="_blank" rel="noopener noreferrer" class="btn-paper-link" title="Enlace oficial verificado">
+              <span>🔗</span> DOI Oficial
+            </a>
+
+            ${p.open_access_pdf ? `
+              <a href="${p.open_access_pdf}" target="_blank" rel="noopener noreferrer" class="btn-paper-link btn-paper-oa" title="Descargar texto completo en Acceso Abierto">
+                <span>📄</span> PDF Acceso Abierto
+              </a>
+            ` : ''}
+
+            <button type="button" class="btn-paper-link" onclick="window.copyPaperBibtex(${idx})" title="Copiar referencia BibTeX">
+              <span>📋</span> Copiar BibTeX
+            </button>
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
+
+  // Copiar BibTeX individual
+  window.copyPaperBibtex = function(index) {
+    const p = state.papers[index];
+    if (!p) return;
+    const authors = p.authors || ['Autor'];
+    const firstAuthor = (authors[0] || 'Autor').split(' ').pop().replace(/[^\w]/g, '');
+    const year = p.year || '2024';
+    const citeKey = `${firstAuthor}${year}`;
+
+    const bib = `@article{${citeKey},
+  title = {{${p.title}}},
+  author = {${authors.join(' and ')}},
+  journal = {${p.journal || 'Revista Científica'}},
+  year = {${year}},
+  doi = {${(p.doi || '').replace('https://doi.org/', '')}},
+  url = {${p.url || ''}}
+}`;
+
+    navigator.clipboard.writeText(bib).then(() => {
+      showToast(`Referencia BibTeX de "${firstAuthor}" copiada`);
+    }).catch(() => {
+      prompt('Copia tu referencia BibTeX:', bib);
+    });
+  };
+
+  // Descargar todas las referencias en archivo .bib
+  if (btnDownloadBibtex) {
+    btnDownloadBibtex.addEventListener('click', () => {
+      let bibContent = '% Referencias Bibliográficas Generadas por ForoMagma\n% Tesis: Baterías de Ion de Litio, Segunda Vida y BMS\n\n';
+      state.papers.forEach(p => {
+        const authors = p.authors || ['Autor'];
+        const firstAuthor = (authors[0] || 'Autor').split(' ').pop().replace(/[^\w]/g, '');
+        const year = p.year || '2024';
+        const citeKey = `${firstAuthor}${year}_${Math.abs(hashString(p.title || '')) % 1000}`;
+
+        bibContent += `@article{${citeKey},\n`;
+        bibContent += `  title = {{${p.title}}},\n`;
+        bibContent += `  author = {${authors.join(' and ')}},\n`;
+        bibContent += `  journal = {${p.journal || 'Revista Científica'}},\n`;
+        bibContent += `  year = {${year}},\n`;
+        if (p.doi) bibContent += `  doi = {${p.doi.replace('https://doi.org/', '')}},\n`;
+        if (p.url) bibContent += `  url = {${p.url}},\n`;
+        bibContent += `}\n\n`;
+      });
+
+      const blob = new Blob([bibContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'referencias_tesis_baterias.bib';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast('Descargando archivo referencias_tesis_baterias.bib');
+    });
+  }
+
+  // Descargar todas las referencias en archivo .md
+  if (btnDownloadMarkdown) {
+    btnDownloadMarkdown.addEventListener('click', () => {
+      let mdContent = `# 📚 Literatura Científica: Baterías de Ion de Litio (Segunda Vida, BMS, SoH, SoC)\n\n`;
+      mdContent += `- Total de publicaciones verificadas: ${state.papers.length}\n`;
+      mdContent += `- Generado en ForoMagma (Santa Marta, Colombia)\n\n---\n\n`;
+
+      state.papers.forEach((p, i) => {
+        mdContent += `### ${i + 1}. ${p.title}\n\n`;
+        mdContent += `- **Autores:** ${(p.authors || []).join(', ')}\n`;
+        mdContent += `- **Año:** ${p.year || 'N/D'} | **Revista:** ${p.journal || 'N/D'}\n`;
+        mdContent += `- **Ámbito:** ${p.scope || 'Global'} | **Citas:** ${p.citations || 0}\n`;
+        mdContent += `- **DOI Oficial:** ${p.url || p.doi || 'N/D'}\n`;
+        if (p.open_access_pdf) mdContent += `- **PDF Acceso Abierto:** ${p.open_access_pdf}\n`;
+        if (p.abstract) mdContent += `\n> **Resumen:** ${p.abstract}\n`;
+        mdContent += `\n---\n\n`;
+      });
+
+      const blob = new Blob([mdContent], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'literatura_tesis_baterias.md';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast('Descargando reporte literatura_tesis_baterias.md');
+    });
+  }
+
+  function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash);
+  }
+
+  // Render inicial de papers
+  renderPapersList();
+
+  // ==========================================================
   // INICIALIZACIÓN CON FIREBASE EN TIEMPO REAL
   // ==========================================================
   await StorageManager.init(
@@ -729,3 +1050,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   );
 });
+

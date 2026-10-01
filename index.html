@@ -53,6 +53,9 @@
       <button class="tab-btn" data-tab="matrix">
         <span class="dot" style="background: var(--pcb);"></span>Matriz de Dependencias
       </button>
+      <button class="tab-btn" data-tab="papers">
+        <span class="dot" style="background: var(--doc);"></span>Repositorio Académico & APIs
+      </button>
     </nav>
 
     <!-- ==========================================================
@@ -187,6 +190,50 @@
       </p>
     </div>
 
+    <!-- ==========================================================
+         PANEL 4: REPOSITORIO ACADÉMICO & APIS (BATERÍAS DE ION DE LITIO)
+         ========================================================== -->
+    <div class="panel" data-panel="papers">
+      
+      <div class="papers-header-bar">
+        <div class="papers-title-group">
+          <h2>Literatura Académica Especializada & APIs</h2>
+          <p>Indexado oficial desde OpenAlex y Crossref sobre Baterías de Ion de Litio, Segunda Vida, BMS, SoH y SoC.</p>
+        </div>
+        <div class="papers-export-btns">
+          <button type="button" class="btn-export-academic" id="btnDownloadBibtex" title="Descargar referencias en BibTeX">
+            <span>📥</span> Descargar .bib (BibTeX)
+          </button>
+          <button type="button" class="btn-export-academic" id="btnDownloadMarkdown" title="Descargar reporte en Markdown">
+            <span>📄</span> Descargar .md (Markdown)
+          </button>
+        </div>
+      </div>
+
+      <!-- Barra de Consulta en Vivo a OpenAlex API -->
+      <div class="papers-live-search-row">
+        <input type="text" id="paperLiveSearchInput" class="papers-live-input" placeholder="Filtrar por título, autor, DOI o escribir tema para consultar la API en vivo...">
+        <button type="button" class="btn-api-query" id="btnQueryOpenAlexLive" title="Consultar OpenAlex en tiempo real">
+          <span>⚡</span> Consultar OpenAlex en Vivo
+        </button>
+      </div>
+
+      <!-- Píldoras de filtrado por categoría de tesis -->
+      <div class="papers-pills-row" id="paperTopicPills">
+        <button class="paper-topic-pill active" data-topic="all">⚡ Todos los temas (<span id="countAllPapers">0</span>)</button>
+        <button class="paper-topic-pill" data-topic="Segunda Vida">🔄 Segunda Vida</button>
+        <button class="paper-topic-pill" data-topic="BMS Segunda Vida">🛡️ BMS Segunda Vida</button>
+        <button class="paper-topic-pill" data-topic="BMS Estándares">📐 BMS Estándares</button>
+        <button class="paper-topic-pill" data-topic="SoH (Salud)">🔋 SoH (Salud)</button>
+        <button class="paper-topic-pill" data-topic="SoC (Carga)">📊 SoC (Carga)</button>
+        <button class="paper-topic-pill" data-topic="Carga Rápida">⚡ Carga Rápida & Ciclos</button>
+        <button class="paper-topic-pill" data-topic="Colombia / LatAm">🇨🇴 Colombia / LatAm</button>
+      </div>
+
+      <!-- Contenedor dinámico de papers -->
+      <div class="papers-grid" id="papersContainer"></div>
+    </div>
+
     <!-- Pie de página -->
     <footer style="margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 0.78rem; color: var(--ink-soft); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
       <span>ForoMagma — Tablero colaborativo sincronizado en tiempo real con Google Firebase.</span>
@@ -253,6 +300,7 @@
   <!-- Lógica -->
   <script src="js/firebase-config.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/papers_data.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
