@@ -102,6 +102,37 @@ Para cumplir con el rigor de una Revisión Sistemática de Literatura (estándar
 * Inspirado en un diseño editorial técnico de alto contraste (*TaganAzul*).
 * Variables CSS reactivas bajo `:root` y `[data-theme="dark"]`, persistiendo la preferencia del usuario en `localStorage.getItem('foromagma_theme')`.
 
+### 3.4. Acceso a Firebase y Límites de Publicación
+* **Sesión:** al cargar la página, `StorageManager.init` abre una sesión anónima (`signInAnonymously`). Requiere el proveedor **Anónimo** activado en Firebase Authentication.
+* **Adjuntos:** se suben a Firebase Storage (máximo 20 MB) y Firestore guarda solo la URL. Si la subida falla, no se publica nada y se muestra el motivo.
+* **Texto:** cada publicación, con sus comentarios, debe caber en un documento de Firestore (1 MiB).
+* **Seguridad:** la sesión anónima no identifica a nadie; cualquiera que abra la web puede leer, escribir y borrar.
+
+**Reglas de Firestore:**
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
+**Reglas de Storage:**
+```
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /archivos_tesis/{fileName} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.size <= 20 * 1024 * 1024;
+    }
+  }
+}
+```
+
 ---
 
 ## 4. Comandos de Mantenimiento y Despliegue

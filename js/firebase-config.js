@@ -14,12 +14,16 @@ const firebaseConfig = {
 let firebaseApp = null;
 let firestoreDb = null;
 let firestoreStorage = null;
+let firebaseAuth = null;
 
 try {
   if (typeof firebase !== 'undefined') {
     firebaseApp = firebase.initializeApp(firebaseConfig);
+    firebaseAuth = firebase.auth();
     firestoreDb = firebase.firestore();
     firestoreStorage = firebase.storage();
+    // Sin esto, un fallo de red o de bucket reintenta hasta 10 minutos antes de avisar
+    firestoreStorage.setMaxUploadRetryTime(2 * 60 * 1000);
     console.log("⚡ ForoMagma: Conectado exitosamente a Firebase Cloud");
   }
 } catch (e) {

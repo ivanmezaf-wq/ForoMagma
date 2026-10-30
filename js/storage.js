@@ -3,6 +3,7 @@
 const DB_COLLECTION = 'posts';
 const KANBAN_COLLECTION = 'kanban_tasks';
 const RATINGS_COLLECTION = 'ratings';
+const MAX_FIRESTORE_DOC_BYTES = 1000000; // Firestore admite 1 MiB por documento; se deja margen
 
 const StorageManager = {
   db: null,
@@ -10,15 +11,25 @@ const StorageManager = {
   onPostsUpdateCallback: null,
   onKanbanUpdateCallback: null,
   onRatingsUpdateCallback: null,
+  onConnectionErrorCallback: null,
 
-  async init(onPostsUpdate, onKanbanUpdate, onRatingsUpdate) {
+  async init(onPostsUpdate, onKanbanUpdate, onRatingsUpdate, onConnectionError) {
     this.onPostsUpdateCallback = onPostsUpdate;
     this.onKanbanUpdateCallback = onKanbanUpdate;
     this.onRatingsUpdateCallback = onRatingsUpdate;
+    this.onConnectionErrorCallback = onConnectionError;
 
     if (typeof firestoreDb !== 'undefined' && firestoreDb) {
       this.isFirebaseActive = true;
       console.log('⚡ Conexión Firestore activa (Posts + Kanban + Clasificación)');
+
+      // Las reglas de seguridad exigen sesión: se abre una anónima antes de escuchar datos
+      try {
+        await firebaseAuth.signInAnonymously();
+      } catch (authErr) {
+        console.error('Error en el inicio de sesión anónimo:', authErr);
+        this.reportConnectionError(authErr);
+      }
 
       // 1. Escuchar Publicaciones del Foro en tiempo real
       firestoreDb.collection(DB_COLLECTION)
@@ -34,7 +45,10 @@ const StorageManager = {
             });
           });
           if (this.onPostsUpdateCallback) this.onPostsUpdateCallback(posts);
-        }, (err) => console.warn('Error en snapshot posts:', err));
+        }, (err) => {
+          console.warn('Error en snapshot posts:', err);
+          this.reportConnectionError(err);
+        });
 
       // 2. Escuchar Tareas del Tablero Kanban en tiempo real
       firestoreDb.collection(KANBAN_COLLECTION)
@@ -78,6 +92,30 @@ const StorageManager = {
     }
   },
 
+  reportConnectionError(err) {
+    if (this.onConnectionErrorCallback) this.onConnectionErrorCallback(this.describeError(err));
+  },
+
+  // Traduce los códigos de Firebase a un mensaje que indique qué hacer
+  describeError(err) {
+    const code = (err && err.code) || '';
+    const messages = {
+      'auth/operation-not-allowed': 'El inicio de sesión anónimo no está activado en Firebase Authentication.',
+      'auth/configuration-not-found': 'El inicio de sesión anónimo no está activado en Firebase Authentication.',
+      'auth/admin-restricted-operation': 'El inicio de sesión anónimo no está activado en Firebase Authentication.',
+      'permission-denied': 'Firebase rechazó la operación: revisa las reglas de Firestore y el inicio de sesión anónimo.',
+      'unavailable': 'No hay conexión con Firebase. Revisa tu internet e inténtalo de nuevo.',
+      'storage/unauthorized': 'Firebase Storage rechazó el archivo: revisa las reglas de Storage.',
+      'storage/unauthenticated': 'Firebase Storage exige sesión: revisa el inicio de sesión anónimo.',
+      'storage/bucket-not-found': 'Firebase Storage no está activado en el proyecto.',
+      'storage/project-not-found': 'Firebase Storage no está activado en el proyecto.',
+      'storage/unknown': 'Firebase Storage no respondió: comprueba que esté activado en el proyecto.',
+      'storage/quota-exceeded': 'Se agotó la cuota de Firebase Storage.',
+      'storage/retry-limit-exceeded': 'La subida tardó demasiado. Revisa tu conexión e inténtalo de nuevo.'
+    };
+    return messages[code] || (err && err.message) || String(err);
+  },
+
   normalizeAuthor(rawAuthor) {
     if (!rawAuthor) return 'Autor';
     if (typeof rawAuthor === 'string') return rawAuthor.trim() || 'Autor';
@@ -114,30 +152,35 @@ const StorageManager = {
       author: this.normalizeAuthor(post.author),
       comments: post.comments || [],
       vistos: post.vistos || [],
-      attachments: post.attachments || [],
+      // Copias: si la subida falla, los adjuntos originales quedan intactos para reintentar
+      attachments: (post.attachments || []).map(att => ({ ...att })),
       createdAt: post.createdAt || new Date().toISOString()
     };
 
-    if (cleanPost.attachments && cleanPost.attachments.length > 0) {
-      for (const att of cleanPost.attachments) {
-        if (att.rawFile && typeof firestoreStorage !== 'undefined' && firestoreStorage) {
-          try {
-            const fileRef = firestoreStorage.ref(`archivos_tesis/${cleanPost.id}_${att.name}`);
-            await fileRef.put(att.rawFile);
-            const downloadUrl = await fileRef.getDownloadURL();
-            att.data = downloadUrl;
-            delete att.rawFile;
-          } catch (storageErr) {
-            delete att.rawFile;
-          }
-        } else {
-          delete att.rawFile;
+    for (const att of cleanPost.attachments) {
+      if (att.rawFile && typeof firestoreStorage !== 'undefined' && firestoreStorage) {
+        try {
+          const fileRef = firestoreStorage.ref(`archivos_tesis/${cleanPost.id}_${att.name}`);
+          await fileRef.put(att.rawFile);
+          att.data = await fileRef.getDownloadURL();
+        } catch (storageErr) {
+          console.error('Error subiendo adjunto:', storageErr);
+          throw new Error(`No se pudo subir "${att.name}". ${this.describeError(storageErr)}`);
         }
       }
+      delete att.rawFile;
     }
 
     if (this.isFirebaseActive && firestoreDb) {
-      await firestoreDb.collection(DB_COLLECTION).doc(cleanPost.id).set(cleanPost);
+      const docBytes = new Blob([JSON.stringify(cleanPost)]).size;
+      if (docBytes > MAX_FIRESTORE_DOC_BYTES) {
+        throw new Error('La publicación supera el límite de 1 MB de Firestore. Acorta el texto o pásalo a un archivo adjunto.');
+      }
+      try {
+        await firestoreDb.collection(DB_COLLECTION).doc(cleanPost.id).set(cleanPost);
+      } catch (firestoreErr) {
+        throw new Error(this.describeError(firestoreErr));
+      }
       return cleanPost;
     }
 

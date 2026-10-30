@@ -394,6 +394,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       );
     }
 
+    if (state.connectionError && state.posts.length === 0) {
+      dom.postsContainer.innerHTML = `
+        <div class="box-panel" style="text-align: center; padding: 40px 20px;">
+          <h3 style="font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 6px;">No se pudo conectar con el foro</h3>
+          <p style="font-size: 0.88rem; color: var(--ink-soft); max-width: 440px; margin: 0 auto;">
+            ${escapeHtml(state.connectionError)}
+          </p>
+        </div>
+      `;
+      return;
+    }
+
     if (filtered.length === 0) {
       dom.postsContainer.innerHTML = `
         <div class="box-panel" style="text-align: center; padding: 40px 20px;">
@@ -600,9 +612,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         textInput.value = '';
         state.openComments.add(postId);
 
-        await StorageManager.addComment(postId, newComment);
-        flashSyncIndicator();
-        showToast('Comentario añadido');
+        try {
+          await StorageManager.addComment(postId, newComment);
+          flashSyncIndicator();
+          showToast('Comentario añadido');
+        } catch (err) {
+          console.error(err);
+          textInput.value = commentText;
+          showToast('Error al comentar: ' + StorageManager.describeError(err));
+        }
       });
     });
   }
@@ -1269,12 +1287,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Auto-activación de búsqueda y sincronización académica al entrar a la página
   autoSyncOpenAlex();
 
+  // Kanban, "visto" y borrados no capturan sus errores: se avisan aquí
+  window.addEventListener('unhandledrejection', (e) => {
+    console.error(e.reason);
+    showToast('Error: ' + StorageManager.describeError(e.reason));
+  });
+
   // ==========================================================
   // INICIALIZACIÓN CON FIREBASE EN TIEMPO REAL
   // ==========================================================
   await StorageManager.init(
     // 1. Callback cuando se actualiza el Foro
     (livePosts) => {
+      state.connectionError = null;
       state.posts = livePosts;
       renderPosts();
       renderLinksSidebar();
@@ -1293,6 +1318,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       renderPapersList();
       renderLinksSidebar();
       flashSyncIndicator();
+    },
+    // 4. Callback cuando Firebase rechaza la conexión
+    (message) => {
+      state.connectionError = message;
+      renderPosts();
+      showToast(message);
     }
   );
 });
